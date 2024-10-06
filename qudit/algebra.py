@@ -56,6 +56,7 @@ def _L_d(d, l):
   mat[l][l] = -l
   return np.sqrt(2 / (l * (l + 1))) * mat
 
+f = 3
 # generalised gell mann matrices
 def dGellMann(d):
   gell_mann = []
@@ -69,12 +70,6 @@ def dGellMann(d):
     gell_mann.append(_L_d(d, j))
 
   return gell_mann
-
-# test with d=2,3 to get back paulis and gell-mann matrices
-# print("Pauli matrices")
-# print(dGellMann(2))
-# print("Gell-Mann matrices")
-# gm = dGellMann(3)
 
 # nth legendre polynomial
 def Legendre(y: int, x:int) -> np.ndarray:

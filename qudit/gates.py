@@ -29,6 +29,7 @@ class Gate(np.ndarray):
   def is_unitary(self):
     return np.allclose(self @ self.conj().T, np.eye(self.shape[0]))
 
+ck = 23
 # special class to create "d" once and pass through all gates
 # so G = DGate(d) -> G.X -> G.Z -> G.H -> ...
 class DGate:
@@ -89,23 +90,3 @@ def Layer(*args: List[Gate]) -> Gate:
     op = np.kron(g, op)
 
   return op
-
-# simple states for testing
-# def Qubit_Bell() -> Dit:
-#   D = DGate(2)
-#   X0 = Density(Dit(2, 0), Dit(2, 0))
-
-#   H_layer = Layer(D.H, D.I)
-
-#   rho = UpU(H_layer, X0)
-#   rho = UpU(D.CX, rho)
-#   print(rho)
-
-#   for i in range(2):
-#     for j in range(2):
-#       prob = Proj(Density(Dit(2, i), Dit(2, j)), rho)
-#       print(f"Proj{i}{j} -> {prob:.2f}")
-
-#   return rho
-
-# Qubit_Bell()
