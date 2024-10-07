@@ -1,4 +1,4 @@
-from qudit import *
+from .qudit import *
 
 def Qubit_Bell() -> Dit:
   D = DGate(2)
@@ -20,7 +20,7 @@ def Qubit_Bell() -> Dit:
 Qubit_Bell()
 
 # test with d=2,3 to get back paulis and gell-mann matrices
-# print("Pauli matrices")
-# print(dGellMann(2))
-# print("Gell-Mann matrices")
-# gm = dGellMann(3)
+print("Pauli matrices")
+print(dGellMann(2))
+print("Gell-Mann matrices")
+gm = dGellMann(3)
