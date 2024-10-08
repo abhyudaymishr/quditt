@@ -2,7 +2,7 @@ from typing import List, Union
 import numpy as np
 
 def Out(i: np.ndarray, j: np.ndarray) -> np.ndarray:
-  return np.outer(i, j.conj())
+  return np.outer(i, j.conj().T)
 
 def In(i: np.ndarray, j: np.ndarray) -> float:
   return np.round(np.dot(i.conj().T, j), 10)

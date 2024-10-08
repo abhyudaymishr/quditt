@@ -16,24 +16,19 @@ class w:
     return self.value ** power
 
 """
-generalised gell mann matrices
+Generalised Gell-Mann Matrices
   https://arxiv.org/pdf/0806.1174
   there are d^2 - 1 of them
   (n n-1)/2, (n n-1)/2, n-1
   symmetric, anti symmetric and diagonal (counter)
 
-The first collection is symmetric:
- lambda_(j,k)^s=E_(k,j)+E_(j,k)
-(1)
-for 1<=j<k<=n. The second collection is antisymmetric:
-
- lambda_(j,k)^a=-i(E_(j,k)-E_(k,j))
-(2)
-for 1<=j<k<=n. The third collection is diagonalDiagonal Matrix:
-
- lambda_l=sqrt(2/(l(l+1)))(sum_(j=1)^l
-      { E_(j,j)- l.E_(l+1,l+1)) }
-
+  Symmetric:
+    lambda_(j,k)^s=E_(k,j)+E_(j,k) for 1<=j<k<=n.
+  Antisymmetric:
+    lambda_(j,k)^a=-i(E_(j,k)-E_(k,j)) for 1<=j<k<=n.
+  Diagonal:
+    lambda_l=sqrt(2/(l(l+1)))(sum_(j=1)^l
+          { E_(j,j)- l.E_(l+1,l+1)) } for 1<=l<=n-1.
 """
 def _E(d, j, k):
   mat = np.zeros((d, d))
