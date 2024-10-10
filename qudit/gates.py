@@ -1,5 +1,5 @@
 from .algebra import w, dGellMann
-from typing import List
+from typing import List, Union
 from .qdits import Dit
 import numpy as np
 import math as ma
@@ -15,10 +15,14 @@ class Gate(np.ndarray):
       obj.sz = ma.log(len(O[0]), d)
     # endif
 
-    obj.name = name if name else "Gate"
+    obj.name = name if name else str(d)
     obj.d = d
 
     return obj
+
+  @property
+  def H(self):
+    return self.conj().T
 
   def __array_finalize__(self, obj):
     if obj is None: return
@@ -27,7 +31,24 @@ class Gate(np.ndarray):
     self.name = getattr(obj, 'name', None)
 
   def is_unitary(self):
-    return np.allclose(self @ self.conj().T, np.eye(self.shape[0]))
+    return np.allclose(self @ self.H, np.eye(self.shape[0]))
+
+  def is_hermitian(self):
+    return np.allclose(self, self.H)
+
+  # gate1 ^ gate2 for np.kron(gate1, gate2)
+  def __xor__(self, other):
+    if not isinstance(other, Gate):
+      other = Gate(other.shape[0], other)
+
+    return Gate(self.d * other.d, np.kron(other, self), f"{self.name}^{other.name}")
+
+  # gate1 | Dit for np.dot(gate1, Dit)
+  def __or__(self, other: Union[Dit, 'Gate']):
+    if isinstance(other, Dit):
+      return np.dot(self, other)
+    else:
+      return np.dot(self, np.dot(other, self.H))
 
 ck = 23
 # special class to create "d" once and pass through all gates
@@ -81,12 +102,3 @@ class DGate:
   @property
   def I(self):
     return Gate(self.d, np.eye(self.d), "I")
-
-# def Layer(g1: Gate, g2: Gate) -> Gate:
-#   return np.kron(g1, g2)
-def Layer(*args: List[Gate]) -> Gate:
-  op = args[0]
-  for g in args[1:]:
-    op = np.kron(g, op)
-
-  return op

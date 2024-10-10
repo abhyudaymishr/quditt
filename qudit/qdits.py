@@ -49,8 +49,8 @@ def Project(*args: List[Dit]) -> np.ndarray:
 
   return Out(state, state)
 
-# combined str option and dits option -> Psi(2, "00") or Psi(Dit(2, 0), Dit(2, 1))
-# -> 'Dit'
+# combined str option and dits option
+#  -> Psi(2, "00") or Psi(Dit(2, 0), Dit(2, 1))
 class Psi(Dit):
   def __new__(cls, d: Union[int, Dit], *args: List[Union[int, Dit]]):
     if isinstance(d, int):
@@ -68,10 +68,3 @@ class Psi(Dit):
 
   def __array_finalize__(self, obj):
     if obj is None: return
-
-# |+>
-# plus = Dit(Dit(2, 0) + Dit(2, 1))
-# print(plus)
-# 00
-# print(Psi(2, "01"))
-# print(Psi(Dit(2, 0), Dit(2, 1)))

@@ -17,16 +17,14 @@ from qudit import *
 D = DGate(2) # create gateset for 2-dits
 
 # p = |00><00|
-X0 = Psi(Dit(2, 0), Dit(2, 0)).density()
+p00 = Psi(Dit(2, 0), Dit(2, 0)).density()
 
-H_layer = Layer(D.H, D.I) # H x I
-
-rho = UpU(H_layer, X0) # H x I p (H x I)^H
-rho = UpU(D.CX, rho) # CX p (CX)^H
+H_x_I = D.H ^ np.eye(2) # H x I
+rho = D.CX | H_x_I | p00 # rho - H x I - CX
 print(rho)
 
 # Tr(|11><11| p)
-prob = Tr(np.array(Psi(2, "11").density().dot(rho)))
+prob = Tr(Psi(2, "11").density().dot(rho))
 print(prob) # 0.5
 ```
 
