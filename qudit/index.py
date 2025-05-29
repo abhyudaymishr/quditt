@@ -7,19 +7,18 @@ import math as ma
   so B("111") will return vec for |111>
   or B(1, 2, 0) will return vec for |120>
 """
+
+
 class Basis:
     d: int = None
-    sz: int = None
+    span: int = None
+
     def __init__(self, d: int):
         self.d = d
-        self.sz = d
 
     def __call__(self, *args: Union[List[int], str]) -> "Vec":
         if len(args) == 1 and isinstance(args[0], str):
             args = [int(i) for i in args[0]]
-
-        if len(args) != self.sz:
-            raise ValueError(f"Expected {self.sz} indices, got {len(args)}")
 
         basis = np.eye(self.d, dtype=np.complex128)
         prod = 1
@@ -55,15 +54,14 @@ class Vec(np.ndarray):
         return Vec(self.conj().T)
 
 
-
 class Gate(np.ndarray):
     def __new__(cls, d: int, O: np.ndarray = None, name: str = None):
         if O is None:
             obj = np.zeros((d, d), dtype=complex).view(cls)
-            obj.sz = 1
+            obj.span = 1
         else:
             obj = np.asarray(O, dtype=complex).view(cls)
-            obj.sz = ma.log(len(O[0]), d)
+            obj.span = int(ma.log(len(O[0]), d))
         # endif
 
         obj.name = name if name else f"Gate({d})"
@@ -79,7 +77,7 @@ class Gate(np.ndarray):
         if obj is None:
             return
         self.d = getattr(obj, "d", None)
-        self.sz = getattr(obj, "sz", None)
+        self.span = getattr(obj, "span", None)
         self.name = getattr(obj, "name", None)
 
     def is_unitary(self):
@@ -87,7 +85,6 @@ class Gate(np.ndarray):
 
     def is_hermitian(self):
         return np.allclose(self, self.H)
-
 
 
 def braket(args: List[np.ndarray]) -> np.ndarray:
@@ -101,8 +98,10 @@ def braket(args: List[np.ndarray]) -> np.ndarray:
 
     return result
 
+
 def Tr(A: np.ndarray) -> float:
     return np.real(np.trace(A))
+
 
 def Project(*args: List[Vec]) -> np.ndarray:
     state = args[-1]

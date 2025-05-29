@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def Unity(d: int):
     assert d > 0 and isinstance(d, int), "Dim must be int>0"
     return np.exp(1j * np.pi / d)
@@ -21,15 +22,16 @@ Diag(l) = A (sum_{j=0}^l |j><j| - l|l+1><l+1|)
 
 f = 3
 
+
 def gellmann(j, k, d):
     mat = np.zeros((d, d), dtype=np.complex128)
 
     if j > k:
-        mat[j-1, k-1] = 1
-        mat[k-1, j-1] = 1
+        mat[j - 1, k - 1] = 1
+        mat[k - 1, j - 1] = 1
     elif k > j:
-        mat[j-1, k-1] = -1j
-        mat[k-1, j-1] = 1j
+        mat[j - 1, k - 1] = -1j
+        mat[k - 1, j - 1] = 1j
     elif j == k and j < d:
         norm = np.sqrt(2 / (j * (j + 1)))
         for m in range(j):
@@ -39,6 +41,7 @@ def gellmann(j, k, d):
         np.fill_diagonal(mat, 1)
 
     return mat
+
 
 def dGellMann(d):
     arr = [gellmann(j, k, d) for j in range(1, d + 1) for k in range(1, d + 1)]
