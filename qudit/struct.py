@@ -1,14 +1,35 @@
 from typing import List, Union, Callable
-from .index import Gate
+from dataclasses import dataclass
+from .index import Gate, Tensor
+from scipy import sparse as S
 import numpy as np
 
+@dataclass
+class Door:
+  dits: List[int]
+  name: str
+  span: int
+  d: int
+
+  def create(gate: Gate):
+    return Door(
+      name=gate.name,
+      span=gate.span,
+      dits=gate.dits,
+      d=gate.d,
+    )
 
 class Layer:
-    gates: List[Gate]
+    display: List[str]
+    gates: List[Door]
+    data: np.ndarray
     span: int
     d: int
 
     def __init__(self, *args: Union[Gate, Callable]):
+        if len(args) == 0:
+            raise ValueError("Layer must contain at least one gate.")
+
         gates = list(args)
         span = 0
         for g, gate in enumerate(args):
@@ -20,38 +41,77 @@ class Layer:
                 span += gate.span
             else:
                 raise TypeError(f"Expected Gate, got {type(gate)}")
+
+        display = []
+        gate_data = []
+        for g, gate in enumerate(gates):
+            display.append(f"{gate.name}({gate.dits if gate.dits else g})")
+            if len(gate.dits) == 0:
+              gate.dits = [g]
+            gate_data.append(Door.create(gate))
+
         self.span = span
         self.d = args[0].d
-        self.gates = gates
+        self.display = display
+        self.data = self.getMat(gates)
+        self.gates = gate_data
+
+    def getMat(self, in_gates) -> np.ndarray:
+        sublayer = [[]]
+        I = np.eye(self.d)
+        for gate in in_gates:
+            span = gate.span
+            if span != 1:
+                sublayer[0].append(I)
+
+                if span == 0:
+                    continue
+                sublayer.append(gate)
+            else:
+                sublayer[0].append(gate)
+        sublayer[0] = S.csr_matrix(Tensor(*sublayer[0]))
+
+        # REMMEBER TO ADD ONE BECAUSE ENUM IS FROM [1:]
+        for s, sub in enumerate(sublayer[1:]):
+            dits = sub.dits
+            [lq, mq] = [min(dits), max(dits)]
+
+            isDone = False
+            gates = []
+            for i in range(self.span):
+                if i < lq or i > mq:
+                    gates.append(I)
+                else:
+                    if isDone:
+                      continue
+                    gates.append(sub)
+                    isDone = True
+
+            sublayer[s + 1] = S.csr_matrix(Tensor(*gates))
+
+        prod = sublayer[0]
+        for sub in sublayer[1:]:
+          prod = prod @ sub
+
+        return prod
 
     def __repr__(self):
-        return f"Layer({', '.join(gate.name for gate in self.gates)})"
+        return f"Layer({', '.join(self.display)})"
 
     def __getitem__(self, index):
         return self.gates[index]
 
-    def _setitem__(self, index, value):
-        self.gates[index] = value
-
-    def __len__(self):
-        return len(self.gates)
-
     def __iter__(self):
         return iter(self.gates)
-
-    def append(self, gate: Gate):
-        self.gates.append(gate)
 
 
 class Circuit:
     layers: List[Layer]
     span: int
-    isSparse: bool
     d: int
 
     def __init__(self, *args: Layer):
         self.layers = list(args)
-        self.isSparse = False
 
         if len(self.layers) > 0:
             span = self.layers[0].span
@@ -62,38 +122,20 @@ class Circuit:
             self.span = span
 
     def solve(self) -> np.ndarray:
-        if self.isSparse == False:
-            self.make_sparse()
-        assert not isinstance(self.layers[0], Layer)
-
-        prod = self.layers[0]
+        prod = self.layers[0].data
         for m in self.layers[1:]:
-            prod = m @ prod
+            prod = m.data @ prod
 
         return prod
 
-    def make_sparse(self):
-        from scipy import sparse
-
-        matrices = []
-        for layer in self.layers:
-            prod = 1
-            for gate in layer:
-                prod = np.kron(prod, gate)
-
-            prod = sparse.csr_matrix(prod)
-            matrices.append(prod)
-
-        self.layers = matrices
-        self.isSparse = True
-
     def _draw_penny(self):
-        qudits = sum(gate.span for gate in self.layers[0])
+        qudits = self.layers[0].span
 
         strings = ["─"] * qudits
         for l, layer in enumerate(self.layers):
             qctr = 0
             for gate in layer:
+                print(f"{gate=} {qctr=}")
                 if gate.span == 2:
                     strings[qctr] += f"╭●─"
                     strings[qctr + 1] += f"╰{gate.name}─"
@@ -114,17 +156,12 @@ class Circuit:
     def _draw_raw(self):
         p = "Circuit("
         for layer in self.layers:
-            if self.isSparse:
-                p += f"\n  Sparse({layer.shape}),"
-            else:
-                p += f"\n  {layer},"
+            p += f"\n  {layer},"
         p += "\n)"
         return p
 
     def draw(self, output: str = "raw"):
         if output == "penny":
-            if self.isSparse:
-                raise ValueError("Cannot draw sparse circuit in pennylane format.")
             return self._draw_penny()
         elif output == "raw":
             return self._draw_raw()
@@ -136,9 +173,6 @@ class Circuit:
 
     def __getitem__(self, index):
         return self.layers[index]
-
-    def __len__(self):
-        return len(self.layers)
 
     def __iter__(self):
         return iter(self.layers)

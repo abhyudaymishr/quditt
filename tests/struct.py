@@ -2,23 +2,21 @@ import sys
 
 sys.path.append("..")
 
-from qudit import Layer, Gategen, Circuit
+import scipy.sparse as sp
+from qudit import *
 import numpy as np
-
-# import scipy as sp
+import math as ma
 
 
 D = Gategen(2)
 
 C = Circuit()
-C.layer(D.X, D.X, D.I, D.Z, D.Z)
-C.layer(D.H, D.X, D.CX(1), D.H)
-C.layer(D.I, D.CX(3), D.CX(1))
+L1 = C.layer(D.X, D.X, D.I, D.Z, D.Z)
+L2 = C.layer(D.H, D.Null, D.X, D.CX(1), D.H)
+# L3 = C.layer(D.I, D.Null, D.CX(3), D.Null, D.CX(1))
 
-print(C)
-
-# print(C.draw())
-# print("---" * 3)
+print(C.draw())
+print("---" * 3)
 # print(C.draw(output="penny"))
 
-# print(f"Solved to: {C.solve().shape} sparse matrix")
+print(f"Solved to: {C.solve().shape} sparse matrix")

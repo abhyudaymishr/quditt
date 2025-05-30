@@ -26,7 +26,7 @@ class Gategen:
         O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
         return Gate(self.d, O, "X")
 
-    def CU(self, U: Gate, dits: Tuple[int, int]):
+    def CU(self, U: Gate, dits: List[int]):
         ctrl = lambda k: self.Ket(k).density()
         targ = lambda k: LA.matrix_power(U, k)
         width = abs(dits[1] - dits[0]) + 1
@@ -51,7 +51,10 @@ class Gategen:
             gate.append(Tensor(*Op))
 
         name = U.name if U.name else "U"
-        return Gate(self.d, sum(gate), "C" + name)
+        gate = Gate(self.d, sum(gate), "C" + name)
+        gate.dits = dits
+        gate.span = 2
+        return gate
 
     def _cu_apply(self, U: Gate, targ: int, ctrl: int = None) -> SuperGate:
         assert isinstance(targ, int) and targ >= 0, f"Target ({targ}) must be 0<=int"
@@ -96,3 +99,7 @@ class Gategen:
     @property
     def I(self) -> Gate:
         return Gate(self.d, np.eye(self.d), "I")
+
+    @property
+    def Null(self) -> Gate:
+        return Gate(self.d, np.array([[0]]), "_")

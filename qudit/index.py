@@ -58,6 +58,7 @@ class Gate(np.ndarray):
     span: int
     d: int
     name: str = ""
+    dits: List[int]
 
     def __new__(cls, d: int, O: np.ndarray = None, name: str = None):
         if O is None:
@@ -70,6 +71,7 @@ class Gate(np.ndarray):
 
         obj.name = name if name else f"Gate({d})"
         obj.d = d
+        obj.dits = []
 
         return obj
 
@@ -80,9 +82,10 @@ class Gate(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.d = getattr(obj, "d", None)
-        self.span = getattr(obj, "span", None)
-        self.name = getattr(obj, "name", None)
+        self.d = getattr(obj, "d", 0)
+        self.span = getattr(obj, "span", 0)
+        self.name = getattr(obj, "name", "Gate")
+        self.dits = getattr(obj, "dits", [])
 
     def is_unitary(self):
         return np.allclose(self @ self.H, np.eye(self.shape[0]))
@@ -95,6 +98,7 @@ def braket(*args: np.ndarray) -> np.ndarray:
     if len(args) < 2:
         raise ValueError("At least two arguments are required for Bracket")
 
+    args = list(args)
     args[-1] = args[-1].conj().T
     result = args[0]
     for arg in args[1:]:
@@ -111,4 +115,9 @@ def Tensor(*args: Union[Gate, Vec]) -> np.ndarray:
     for arg in args[1:]:
         result = np.kron(result, arg)
 
-    return result
+    if result.ndim == 2:
+        d = result.d
+        return Gate(d, result, name="AggreGate")
+        # since X, H, CNOT are not longer valid names
+    else:
+        return result
