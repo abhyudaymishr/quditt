@@ -55,6 +55,10 @@ class Vec(np.ndarray):
 
 
 class Gate(np.ndarray):
+    span: int
+    d: int
+    name: str = ""
+
     def __new__(cls, d: int, O: np.ndarray = None, name: str = None):
         if O is None:
             obj = np.zeros((d, d), dtype=complex).view(cls)
@@ -87,7 +91,7 @@ class Gate(np.ndarray):
         return np.allclose(self, self.H)
 
 
-def braket(args: List[np.ndarray]) -> np.ndarray:
+def braket(*args: np.ndarray) -> np.ndarray:
     if len(args) < 2:
         raise ValueError("At least two arguments are required for Bracket")
 
@@ -99,13 +103,12 @@ def braket(args: List[np.ndarray]) -> np.ndarray:
     return result
 
 
-def Tr(A: np.ndarray) -> float:
-    return np.real(np.trace(A))
+def Tensor(*args: Union[Gate, Vec]) -> np.ndarray:
+    if len(args) < 2:
+        raise ValueError("At least two args needed")
 
+    result = args[0]
+    for arg in args[1:]:
+        result = np.kron(result, arg)
 
-def Project(*args: List[Vec]) -> np.ndarray:
-    state = args[-1]
-    for d in args[:-1]:
-        state = np.kron(d, state)
-
-    return np.kron(state, state.conj().T)
+    return result

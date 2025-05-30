@@ -1,18 +1,28 @@
-from typing import List, Union
+from typing import List, Union, Callable
 from .index import Gate
 import numpy as np
 
+
 class Layer:
-    def __init__(self, *args: List[Gate]):
-        self.gates = list(args)
+    gates: List[Gate]
+    span: int
+    d: int
+
+    def __init__(self, *args: Union[Gate, Callable]):
+        gates = list(args)
         span = 0
-        for gate in args:
+        for g, gate in enumerate(args):
             if isinstance(gate, Gate):
+                span += gate.span
+            elif isinstance(gate, Callable):
+                gate = gate(g)
+                gates[g] = gate
                 span += gate.span
             else:
                 raise TypeError(f"Expected Gate, got {type(gate)}")
         self.span = span
         self.d = args[0].d
+        self.gates = gates
 
     def __repr__(self):
         return f"Layer({', '.join(gate.name for gate in self.gates)})"
@@ -34,7 +44,12 @@ class Layer:
 
 
 class Circuit:
-    def __init__(self, *args: List[Union[Layer, np.ndarray]]):
+    layers: List[Layer]
+    span: int
+    isSparse: bool
+    d: int
+
+    def __init__(self, *args: Layer):
         self.layers = list(args)
         self.isSparse = False
 
@@ -99,10 +114,10 @@ class Circuit:
     def _draw_raw(self):
         p = "Circuit("
         for layer in self.layers:
-          if self.isSparse:
-            p += f"\n  Sparse({layer.shape}),"
-          else:
-            p += f"\n  {layer},"
+            if self.isSparse:
+                p += f"\n  Sparse({layer.shape}),"
+            else:
+                p += f"\n  {layer},"
         p += "\n)"
         return p
 
@@ -128,5 +143,7 @@ class Circuit:
     def __iter__(self):
         return iter(self.layers)
 
-    def append(self, layer: Union[Layer, np.ndarray]):
+    def layer(self, *args: Union[Gate, Callable]):
+        layer = Layer(*args)
         self.layers.append(layer)
+        return layer

@@ -1,14 +1,19 @@
+from typing import List, Tuple, Callable, Union
+from .index import Gate, Basis, Tensor
 from .algebra import Unity, dGellMann
-from .index import Gate, Vec, Basis
-from typing import List
+import numpy.linalg as LA
 import numpy as np
 
 
 ck = 23
 
+SuperGate = Union[
+    Callable[[int, int], Gate],
+    Callable[[int], Gate],
+    Gate,
+]
 
-# special class to create "d" once and pass through all gates
-# so G = DGate(d) -> G.X -> G.Z -> G.H -> ...
+
 class Gategen:
     def __init__(self, d: int):
         self.d = d
@@ -21,17 +26,49 @@ class Gategen:
         O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
         return Gate(self.d, O, "X")
 
-    @property
-    def CX(self) -> Gate:
-        perm = self.X
+    def CU(self, U: Gate, dits: Tuple[int, int]):
+        ctrl = lambda k: self.Ket(k).density()
+        targ = lambda k: LA.matrix_power(U, k)
+        width = abs(dits[1] - dits[0]) + 1
+        """
+          CU = Σ_k U^k ⊗ |k><k| (target, ctrl)
+          CU = Σ_k |k><k| ⊗ U^k (ctrl, target)
 
-        # Sum of X^k ⊗ |k><k|
-        O = sum(
-            np.kron(np.linalg.matrix_power(perm, k), self.Ket(k).density())
-            for k in range(self.d)
-        )
+          for everything else we insert I
+          Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
+        """
 
-        return Gate(self.d, O, "CX")
+        gate = []
+        for k in range(self.d):
+            Op = [ctrl(k)]
+            if width > 2:
+                Op += [np.eye(self.d * (width - 2))]
+            Op += [targ(k)]
+
+            if dits[0] > dits[1]:
+                Op.reverse()
+
+            gate.append(Tensor(*Op))
+
+        name = U.name if U.name else "U"
+        return Gate(self.d, sum(gate), "C" + name)
+
+    def _cu_apply(self, U: Gate, targ: int, ctrl: int = None) -> SuperGate:
+        assert isinstance(targ, int) and targ >= 0, f"Target ({targ}) must be 0<=int"
+
+        def gen(ctrl: int) -> Gate:
+            assert isinstance(ctrl, int) and ctrl > 0, f"Ctrl ({ctrl}) must be 0<int"
+            assert ctrl != targ, f"ctrl{ctrl} == targ{targ}, is not allowed"
+
+            return self.CU(U, (ctrl, targ))
+
+        if ctrl is None:
+            return gen
+        else:
+            return gen(ctrl)
+
+    def CX(self, *args) -> SuperGate:
+        return self._cu_apply(self.X, *args)
 
     @property
     def Z(self) -> Gate:
