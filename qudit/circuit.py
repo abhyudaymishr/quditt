@@ -115,7 +115,7 @@ class cfn:
         return [s.ljust(lmax, "─") for s in strings]
 
     def cx(strings: List[str], dits: List[int], name: str = "U") -> List[str]:
-        [ctrl, targ] = dits
+        ctrl, targ = dits
         name = name[1:] if name.startswith("C") else name
 
         if ctrl > targ:

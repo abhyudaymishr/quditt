@@ -3,4 +3,4 @@ from .gates import *
 from .index import *
 from .circuit import *
 
-assert f * ck == 69
+assert f * ck == 42

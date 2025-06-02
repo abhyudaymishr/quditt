@@ -12,11 +12,11 @@ D = Gategen(2)
 
 C = Circuit()
 L1 = C.layer(D.X, D.X, D.I, D.Z, D.Z)
-L2 = C.layer(D.H, D.Null, D.X, D.CX(1), D.H)
+L2 = C.layer(D.H, D._, D.X, D.CX(1), D.H)
 L4 = C.barrier()
 L4 = C.layer(D.X, D.X, D.I, D.Z, D.Z)
 L4 = C.barrier()
-L3 = C.layer(D.I, D.Null, D.CX(3), D.Null, D.CX(1))
+L3 = C.layer(D.I, D._, D.CX(3), D._, D.CX(1))
 
 print(C.draw())
 print("---" * 3)

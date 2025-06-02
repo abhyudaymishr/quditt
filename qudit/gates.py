@@ -73,6 +73,12 @@ class Gategen:
     def CX(self, *args) -> SuperGate:
         return self._cu_apply(self.X, *args)
 
+    def CY(self, *args) -> SuperGate:
+        return self._cu_apply(self.Y, *args)
+
+    def CZ(self, *args) -> SuperGate:
+        return self._cu_apply(self.Z, *args)
+
     @property
     def Z(self) -> Gate:
         w = Unity(self.d)
@@ -101,5 +107,5 @@ class Gategen:
         return Gate(self.d, np.eye(self.d), "I")
 
     @property
-    def Null(self) -> Gate:
+    def _(self) -> Gate:
         return Gate(self.d, np.array([[0]]), "_")
