@@ -4,24 +4,28 @@ from .index import Gate, Tensor
 from scipy import sparse as S
 import numpy as np
 
-@dataclass
-class Door:
-  dits: List[int]
-  name: str
-  span: int
-  d: int
+BARRIER = "─|─"
 
-  def create(gate: Gate):
-    return Door(
-      name=gate.name,
-      span=gate.span,
-      dits=gate.dits,
-      d=gate.d,
-    )
+
+@dataclass
+class Frame:
+    dits: List[int]
+    name: str
+    span: int
+    d: int
+
+    def create(gate: Gate):
+        return Frame(
+            name=gate.name,
+            span=gate.span,
+            dits=gate.dits,
+            d=gate.d,
+        )
+
 
 class Layer:
     display: List[str]
-    gates: List[Door]
+    gates: List[Frame]
     data: np.ndarray
     span: int
     d: int
@@ -47,8 +51,8 @@ class Layer:
         for g, gate in enumerate(gates):
             display.append(f"{gate.name}({gate.dits if gate.dits else g})")
             if len(gate.dits) == 0:
-              gate.dits = [g]
-            gate_data.append(Door.create(gate))
+                gate.dits = [g]
+            gate_data.append(Frame.create(gate))
 
         self.span = span
         self.d = args[0].d
@@ -83,7 +87,7 @@ class Layer:
                     gates.append(I)
                 else:
                     if isDone:
-                      continue
+                        continue
                     gates.append(sub)
                     isDone = True
 
@@ -91,7 +95,7 @@ class Layer:
 
         prod = sublayer[0]
         for sub in sublayer[1:]:
-          prod = prod @ sub
+            prod = prod @ sub
 
         return prod
 
@@ -105,6 +109,30 @@ class Layer:
         return iter(self.gates)
 
 
+class cfn:
+    def balance(strings: List[str]) -> List[str]:
+        lmax = max(len(s) for s in strings)
+        return [s.ljust(lmax, "─") for s in strings]
+
+    def cx(strings: List[str], dits: List[int], name: str = "U") -> List[str]:
+        [ctrl, targ] = dits
+        name = name[1:] if name.startswith("C") else name
+
+        if ctrl > targ:
+            strings[targ] += f"╭{name}─"
+            strings[ctrl] += "╰●─"
+            scan = range(targ + 1, ctrl)
+        else:
+            strings[ctrl] += "╭●─"
+            strings[targ] += f"╰{name}─"
+            scan = range(ctrl + 1, targ)
+
+        for i in scan:
+            strings[i] += "│─"
+
+        return strings
+
+
 class Circuit:
     layers: List[Layer]
     span: int
@@ -112,6 +140,8 @@ class Circuit:
 
     def __init__(self, *args: Layer):
         self.layers = list(args)
+        self.d = -1
+        self.span = -1
 
         if len(self.layers) > 0:
             span = self.layers[0].span
@@ -120,6 +150,7 @@ class Circuit:
                     raise ValueError(f"Expected {span}, got {layer.span}")
 
             self.span = span
+            self.d = self.layers[0].d
 
     def solve(self) -> np.ndarray:
         prod = self.layers[0].data
@@ -134,21 +165,19 @@ class Circuit:
         strings = ["─"] * qudits
         for l, layer in enumerate(self.layers):
             qctr = 0
-            for gate in layer:
-                print(f"{gate=} {qctr=}")
-                if gate.span == 2:
-                    strings[qctr] += f"╭●─"
-                    strings[qctr + 1] += f"╰{gate.name}─"
+            for g, gate in enumerate(layer):
+                if gate.span > 1:
+                    strings = cfn.balance(strings)
+                    strings = cfn.cx(strings, gate.dits, gate.name)
                     qctr += 2
                 else:
-                    if gate.name == "I":
-                        strings[qctr] += "──"
+                    if gate.name == "I" or gate.name == "_":
+                        strings[g] += "──"
                     else:
-                        strings[qctr] += f"{gate.name}─"
+                        strings[g] += f"{gate.name}─"
                     qctr += 1
             # endfor
-            lmax = max(len(s) for s in strings)
-            strings = [s.ljust(lmax, "─") for s in strings]
+            strings = cfn.balance(strings)
         # endfor
 
         return "\n".join(strings)
@@ -156,6 +185,8 @@ class Circuit:
     def _draw_raw(self):
         p = "Circuit("
         for layer in self.layers:
+            if layer[0].name == BARRIER:
+                continue
             p += f"\n  {layer},"
         p += "\n)"
         return p
@@ -179,5 +210,21 @@ class Circuit:
 
     def layer(self, *args: Union[Gate, Callable]):
         layer = Layer(*args)
+
+        if self.d == -1:
+            self.d = layer[0].d
+        if self.span == -1:
+            self.span = layer.span
+
         self.layers.append(layer)
         return layer
+
+    def barrier(self):
+        if len(self.layers) < 1:
+            raise ValueError("Add at least 1 layer for a barrier")
+        assert self.d > 0, "Dimension Unknown, add a layer first"
+        assert self.span > 0, "Span Unknown, add a layer first"
+
+        d = self.d
+        args = [Gate(d, np.eye(d), BARRIER)] * self.span
+        self.layer(*args)

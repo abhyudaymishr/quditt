@@ -5,7 +5,7 @@ import numpy.linalg as LA
 import numpy as np
 
 
-ck = 23
+ck = 21
 
 SuperGate = Union[
     Callable[[int, int], Gate],

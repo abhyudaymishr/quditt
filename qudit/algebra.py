@@ -20,7 +20,7 @@ Diag(l) = A (sum_{j=0}^l |j><j| - l|l+1><l+1|)
 - https://arxiv.org/pdf/0806.1174
 """
 
-f = 3
+f = 2
 
 
 def gellmann(j, k, d):
