@@ -47,3 +47,6 @@ GHZ = Dit(P000, P111, P222)
 
 print(GHZ.density())
 ```
+
+### Caveats
+- I don't plan to support Variational circuits anytime soon. For that probably use `cirq`, or hand-write your circuits.

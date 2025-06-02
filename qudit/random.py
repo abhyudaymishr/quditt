@@ -11,18 +11,16 @@ all unitary and special unitary groups](https://arxiv.org/pdf/1103.3408) - Expli
 """
 
 
-
 # https://case.edu/artsci/math/mwmeckes/elizabeth/Meckes_SAMSI_Lecture2.pdf
 def unitary(n: int) -> np.ndarray:
     l, r = N(size=(n, n)).astype(C128), N(size=(n, n)).astype(C128)
     Q, R = LA.qr(l + 1j * r)
 
     # Rii / |Rii|
-    A = np.diag([
-      R[i, i] / np.abs(R[i, i]) for i in range(n)
-    ])
+    A = np.diag([R[i, i] / np.abs(R[i, i]) for i in range(n)])
 
     return np.dot(Q, A)
+
 
 def state(n: int) -> np.ndarray:
     U = unitary(n)
@@ -32,6 +30,3 @@ def state(n: int) -> np.ndarray:
     vec = np.dot(U, vec)
     vec /= LA.norm(vec)
     return vec.astype(C128)
-
-def circuit():
-  pass
