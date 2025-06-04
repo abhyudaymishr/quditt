@@ -2,13 +2,12 @@ import sys
 
 sys.path.append("..")
 
-from qudit.tools.entanglement import *
-from qudit import *
+from qudit.tools.entanglement import Loss, rank, Perp
+from qudit import Basis, State
 import numpy as np
 
 THETA = 1.5
 D, r = 5, 2
-
 
 Bits, Trits = Basis(2), Basis(3)
 

@@ -17,7 +17,7 @@ class Basis:
     def __init__(self, d: int):
         self.d = d
 
-    def __call__(self, *args: Union[List[int], str]) -> "State":
+    def __call__(self, *args: Union[List[int], str, int]) -> "State":
         if len(args) == 1 and isinstance(args[0], str):
             args = [int(i) for i in args[0]]
 
