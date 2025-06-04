@@ -3,14 +3,14 @@ import numpy as np
 
 ROUNDOFF_TOL = 1e-6
 
+
 def Perp(basis):
     if not isinstance(basis, np.ndarray):
         basis = np.array(basis)
 
-    projector = sum(np.array(
-        [np.outer(basis[i], basis[i].conj().T)
-          for i in range(len(basis))]
-    ))
+    projector = sum(
+        np.array([np.outer(basis[i], basis[i].conj().T) for i in range(len(basis))])
+    )
 
     return np.eye(len(basis[0])) - projector
 
@@ -30,7 +30,7 @@ def rank(f, D, r, **kwargs):
 
     tries = kwargs.get("tries", 1)
     rmax = kwargs.get("r_max", 2**7)
-    size = (2*D + 1)*(r - 1)
+    size = (2 * D + 1) * (r - 1)
 
     if "tries" in kwargs:
         del kwargs["tries"]
@@ -39,9 +39,7 @@ def rank(f, D, r, **kwargs):
     for i in range(tries):
         try:
             minimas[i] = minimize(
-              f,
-              x0=np.random.uniform(-rmax, rmax, size),
-              **kwargs
+                f, x0=np.random.uniform(-rmax, rmax, size), **kwargs
             ).fun
         except Exception as e:
             pass

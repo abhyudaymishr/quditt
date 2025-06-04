@@ -6,8 +6,10 @@ from qudit import *
 
 def gellMann():
     gm = dGellMann(3)
-    count = 0
     for mat in gm:
-        print(f"{count}" + "=" * 20)
         print(mat)
-        count += 1
+    print("=" * 10, "\nNumber of Gell-Mann matrices:\n\t", len(gm))
+
+
+if __name__ == "__main__":
+    gellMann()

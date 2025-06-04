@@ -19,7 +19,7 @@ def sv():
 
     w = Unity(3)
     Ket = Basis(4)
-    SV = Vec(
+    SV = State(
         w * Ket("0000")
         + w**2 * Ket("1010")
         + rt(3) * 1j * Ket("2010")
@@ -35,3 +35,8 @@ def sv():
     )
 
     return SV
+
+
+if __name__ == "__main__":
+    basis()
+    print(sv())

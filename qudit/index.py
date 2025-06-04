@@ -5,8 +5,8 @@ import math as ma
 
 """
   B = Basis(3) will create a qutrit basis
-  so B("111") will return vec for |111>
-  or B(1, 2, 0) will return vec for |120>
+  so B("111") will return State for |111>
+  or B(1, 2, 0) will return State for |120>
 """
 
 
@@ -17,7 +17,7 @@ class Basis:
     def __init__(self, d: int):
         self.d = d
 
-    def __call__(self, *args: Union[List[int], str]) -> "Vec":
+    def __call__(self, *args: Union[List[int], str]) -> "State":
         if len(args) == 1 and isinstance(args[0], str):
             args = [int(i) for i in args[0]]
 
@@ -28,84 +28,89 @@ class Basis:
                 raise ValueError(f"Index {ket} out of bounds for dimension {self.d}")
             prod = np.kron(prod, basis[ket])
 
-        return Vec(prod)
+        return State(prod)
 
 
-class Density(np.ndarray):
-    def __new__(cls, d: Union[np.ndarray, List[List[Union[complex, float]]]]):
-        obj = np.asarray(d, dtype=np.complex128).view(cls)
+class State(np.ndarray):
 
+    def __new__(cls, d: Union[np.ndarray, List, "State"]):
+        arr = np.asarray(d, dtype=np.complex128)
+
+        if arr.ndim == 1:
+            arr = arr / np.linalg.norm(arr)
+        elif arr.ndim == 2:
+            if arr.shape[0] != arr.shape[1]:
+                raise ValueError("Density matrix must be square")
+        else:
+            raise ValueError("Input must be 1D (vector) or 2D (density matrix)")
+
+        obj = arr.view(cls)
         return obj
 
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        if obj.ndim != 2 or obj.shape[0] != obj.shape[1]:
-            raise ValueError("Density matrix must be square")
-
-    def __xor__(self, other: "Density") -> "Density":
-        return Density(np.kron(self, other))
 
     @property
-    def trace(self) -> float:
-        return np.trace(self).real
+    def isDensity(self) -> bool:
+        return self.ndim == 1
+
+    def isPure(self) -> bool:
+        if not self.isDensity:
+            return True
+        else:
+            tr = np.trace(self**2).real
+            return np.isclose(tr, 1.0)
 
     @property
     def d(self):
         return self.shape[0]
 
-    def norm(self) -> "Density":
-        return Density(self / self.trace)
+    def norm(self) -> "State":
+        if self.isDensity:
+            return State(self / np.linalg.norm(self))
+        else:
+            return State(self / self.trace)
+
+    def density(self) -> "State":
+        if self.isDensity:
+            return State(np.outer(self, self.conj()))
+
+        return self
 
     @property
-    def H(self) -> "Density":
-        return Density(self.conj().T)
+    def H(self) -> "State":
+        return State(self.conj().T)
 
-    def proj(self) -> "Density":
+    def __xor__(self, other: "State") -> "State":
+        return State(np.kron(self, other))
+
+    @property
+    def trace(self) -> float:
+        if not self.isDensity:
+            raise ValueError("Trace is only defined for density matrices")
+
+        return np.trace(self).real
+
+    def proj(self) -> "State":
+        if not self.isDensity:
+            return self.density()
+
         evals, evecs = LA.eig(self)
         matrix = sum(
             [
-                Vec(evecs[:, i]).density()
+                np.outer(evecs[:, i], evecs[:, i].conj())
                 for i in range(len(evals))
                 if np.abs(evals[i]) > 1e-8
             ]
         )
+        return State(matrix)
 
-        return Density(matrix)
-
-    def oproj(self) -> "Density":
+    def oproj(self) -> "State":
         proj = self.proj()
         perp = np.eye(proj.shape[0]) - proj
 
-        return Density(perp)
-
-
-class Vec(np.ndarray):
-    def __new__(cls, d: Union[np.ndarray, List[Union[complex, float]]]):
-        obj = np.asarray(d, dtype=np.complex128).view(cls)
-        obj /= np.linalg.norm(obj)
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-
-    def __xor__(self, other: "Vec") -> "Density":
-        return Vec(np.kron(self, other))
-
-    @property
-    def d(self):
-        return len(self)
-
-    def density(self) -> np.ndarray:
-        return Density(np.outer(self, self.conj().T))
-
-    def norm(self) -> "Vec":
-        return Vec(self / np.linalg.norm(self))
-
-    @property
-    def H(self) -> "Vec":
-        return Vec(self.conj().T)
+        return State(perp)
 
 
 class Gate(np.ndarray):
@@ -163,7 +168,7 @@ def braket(*args: np.ndarray) -> np.ndarray:
 
 
 # A ^ B ^ C ^ D ^ ... ^ N
-def Tensor(*args: Union[Gate, Vec]) -> np.ndarray:
+def Tensor(*args: Union[Gate, State]) -> np.ndarray:
     if len(args) < 2:
         raise ValueError("At least two args needed")
 
