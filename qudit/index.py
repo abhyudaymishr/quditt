@@ -146,10 +146,10 @@ class Gate(np.ndarray):
         self.name = getattr(obj, "name", "Gate")
         self.dits = getattr(obj, "dits", [])
 
-    def is_unitary(self):
+    def isUnitary(self):
         return np.allclose(self @ self.H, np.eye(self.shape[0]))
 
-    def is_hermitian(self):
+    def isHermitian(self):
         return np.allclose(self, self.H)
 
 

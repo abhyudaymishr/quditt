@@ -52,16 +52,16 @@ print(GHZ.density()) # |GHZ><GHZ|
 - Gates: Rot(GellMann), H, CU, CX, XYZ
 - Circuit: Simulation, Drawing
 - Random: States, Gates
+- GramSchmidt
 
 **Almost Done**:
 - Fidelity: Fid, EntFid, Channel Fid
-- GramSchmidt
 - Negativity
 - Gates: T, S
+- Standard States: GHZ, W, Cohorent, Dicke
 
 **Not Done**:
 - Partial Trace
-- Standard States
 - Gates: P, SWAP, Toffoli, QFT
 - Noise: Kraus, Choi
 - Stabiliser → States

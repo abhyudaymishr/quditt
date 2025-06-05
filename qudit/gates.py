@@ -4,7 +4,6 @@ from .algebra import Unity, dGellMann
 import numpy.linalg as LA
 import numpy as np
 
-
 ck = 21
 
 SuperGate = Union[
@@ -13,6 +12,40 @@ SuperGate = Union[
     Gate,
 ]
 
+def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
+    if len(set(dits)) != len(dits):
+        raise ValueError(f"Dits must be unique, got: {dits}")
+    for dit in dits:
+        assert isinstance(dit, int) and dit > 0, f"Dit: {dit} must be 0<int"
+
+    ctrl = lambda k: Ket(k).density()
+    targ = lambda k: LA.matrix_power(U, k)
+    width = abs(dits[1] - dits[0]) + 1
+    """
+      CU = Σ_k U^k ⊗ |k><k| (target, ctrl)
+      CU = Σ_k |k><k| ⊗ U^k (ctrl, target)
+
+      for everything else we insert I
+      Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
+    """
+
+    gate = []
+    for k in range(d):
+        Op = [ctrl(k)]
+        if width > 2:
+            Op += [np.eye(d * (width - 2))]
+        Op += [targ(k)]
+
+        if dits[0] > dits[1]:
+            Op.reverse()
+
+        gate.append(Tensor(*Op))
+
+    name = U.name if U.name else "U"
+    gate = Gate(d, sum(gate), "C" + name)
+    gate.dits = dits
+    gate.span = 2
+    return gate
 
 class Gategen:
     def __init__(self, d: int):
@@ -26,64 +59,39 @@ class Gategen:
         O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
         return Gate(self.d, O, "X")
 
-    def CU(self, U: Gate, dits: List[int]):
-        ctrl = lambda k: self.Ket(k).density()
-        targ = lambda k: LA.matrix_power(U, k)
-        width = abs(dits[1] - dits[0]) + 1
-        """
-          CU = Σ_k U^k ⊗ |k><k| (target, ctrl)
-          CU = Σ_k |k><k| ⊗ U^k (ctrl, target)
-
-          for everything else we insert I
-          Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
-        """
-
-        gate = []
-        for k in range(self.d):
-            Op = [ctrl(k)]
-            if width > 2:
-                Op += [np.eye(self.d * (width - 2))]
-            Op += [targ(k)]
-
-            if dits[0] > dits[1]:
-                Op.reverse()
-
-            gate.append(Tensor(*Op))
-
-        name = U.name if U.name else "U"
-        gate = Gate(self.d, sum(gate), "C" + name)
-        gate.dits = dits
-        gate.span = 2
-        return gate
-
-    def _cu_apply(self, U: Gate, targ: int, ctrl: int = None) -> SuperGate:
-        assert isinstance(targ, int) and targ >= 0, f"Target ({targ}) must be 0<=int"
-
-        def gen(ctrl: int) -> Gate:
-            assert isinstance(ctrl, int) and ctrl > 0, f"Ctrl ({ctrl}) must be 0<int"
-            assert ctrl != targ, f"ctrl{ctrl} == targ{targ}, is not allowed"
-
-            return self.CU(U, (ctrl, targ))
-
-        if ctrl is None:
-            return gen
-        else:
-            return gen(ctrl)
-
-    def CX(self, *args) -> SuperGate:
-        return self._cu_apply(self.X, *args)
-
-    def CY(self, *args) -> SuperGate:
-        return self._cu_apply(self.Y, *args)
-
-    def CZ(self, *args) -> SuperGate:
-        return self._cu_apply(self.Z, *args)
+    @property
+    def Y(self) -> Gate:
+        O = np.zeros((self.d, self.d), dtype=complex)
+        O[0, self.d - 1] = 1j
+        O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
+        return Gate(self.d, O, "Y")
 
     @property
     def Z(self) -> Gate:
         w = Unity(self.d)
         O = np.diag([w**i for i in range(self.d)])
         return Gate(self.d, O, "Z")
+
+    def CU(self, U: Gate, dits: List[int]) -> SuperGate:
+        if not isinstance(dits, list):
+          raise TypeError(f"dits must be a list, got {type(dits)}")
+
+        if len(dits) == 2:
+            return C_Gate(self.d, self.Ket, U, dits)
+
+        def gen(ctrl: int) -> Gate:
+            return C_Gate(self.d, self.Ket, U, [ctrl, dits[0]])
+
+        return gen
+
+    def CX(self, *args) -> SuperGate:
+        return self.CU(self.X, *args)
+
+    def CY(self, *args) -> SuperGate:
+        return self.CU(self.Y, *args)
+
+    def CZ(self, *args) -> SuperGate:
+        return self.CU(self.Z, *args)
 
     @property
     def H(self) -> Gate:
