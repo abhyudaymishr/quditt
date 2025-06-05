@@ -74,7 +74,11 @@ class Gategen:
 
     def CU(self, U: Gate, dits: List[int]) -> SuperGate:
         if not isinstance(dits, list):
+
          raise TypeError(f"dits must be a list, got {type(dits)}")
+
+          raise TypeError(f"dits must be a list, got {type(dits)}")
+
 
         if len(dits) == 2:
             return C_Gate(self.d, self.Ket, U, dits)

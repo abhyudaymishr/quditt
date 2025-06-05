@@ -10,6 +10,7 @@ def fidelity(rho: np.ndarray, sigma: np.ndarray) -> float:
     if sigma.ndim == 1:
         sigma = np.outer(sigma, sigma.conj())
 
+
     # Validate shapes
     if rho.shape != sigma.shape:
         raise ValueError("rho and sigma must be of the same dimension.")
@@ -68,3 +69,19 @@ def negativity(rho, dim_A, dim_B):
     eigenvalues = np.linalg.eigvalsh(rho_pt)
     return np.sum(np.abs(eigenvalues[eigenvalues < 0]))
   
+
+
+def fidelity(rho, sigma):
+    if isinstance(rho, STATE) and isinstance(sigma, STATE):
+        return np.absolute(In(rho, sigma))
+
+    if isinstance(rho, STATE):
+        rho = rho.density()
+    if isinstance(sigma, STATE):
+        sigma = sigma.density()
+
+    _2rho = fractional_matrix_power(rho, 0.5)
+    inner = np.dot(_2rho, np.dot(sigma, _2rho))
+
+    return np.trace(fractional_matrix_power(inner, 0.5))
+
