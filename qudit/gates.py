@@ -94,6 +94,29 @@ class Gategen:
         return self.CU(self.Z, *args)
 
     @property
+    def Z(self):
+     O = np.diag([w(self.d)**i for i in range(self.d)])
+     return Gate(self.d, O, "Z")
+
+
+    @property
+    def S(self):
+     omega_s = np.exp(2j * np.pi / (2 * self.d))
+     O = np.diag([omega_s**j for j in range(self.d)])
+     return Gate(self.d, O, "S")
+
+    @property
+    def T(self):
+       omega_t = np.exp(2j * np.pi / (4 * self.d))
+       O = np.diag([omega_t**j for j in range(self.d)])
+       return Gate(self.d, O, "T")
+
+    def P(self, theta: float):
+      omega = np.exp(1j * theta * np.pi / self.d)
+      O = np.diag([omega**j for j in range(self.d)])
+      return Gate(self.d, O, f"P({theta})")
+
+    @property
     def H(self) -> Gate:
         O = np.zeros((self.d, self.d), dtype=complex)
         w = Unity(self.d)
