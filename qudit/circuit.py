@@ -79,7 +79,7 @@ class Layer:
         for s, sub in enumerate(sublayer[1:]):
             dits = sub.dits
             if len(dits) != sub.span:
-                dits = [dits[0]+i for i in range(len(dits))]
+                dits = [dits[0] + i for i in range(len(dits))]
             # endif
 
             [lq, mq] = [min(dits), max(dits)]
@@ -102,8 +102,8 @@ class Layer:
 
         csr = True
         if csr == True:
-          for i in range(len(sublayer)):
-            sublayer[i] = S.csr_matrix(sublayer[i])
+            for i in range(len(sublayer)):
+                sublayer[i] = S.csr_matrix(sublayer[i])
 
         prod = sublayer[0]
         for sub in sublayer[1:]:

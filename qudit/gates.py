@@ -12,6 +12,7 @@ SuperGate = Union[
     Gate,
 ]
 
+
 def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
     if len(set(dits)) != len(dits):
         raise ValueError(f"Dits must be unique, got: {dits}")
@@ -46,6 +47,7 @@ def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
     gate.dits = dits
     gate.span = 2
     return gate
+
 
 class Gategen:
     def __init__(self, d: int):
@@ -93,27 +95,21 @@ class Gategen:
         return self.CU(self.Z, *args)
 
     @property
-    def Z(self):
-     O = np.diag([w(self.d)**i for i in range(self.d)])
-     return Gate(self.d, O, "Z")
-
-
-    @property
     def S(self):
-     omega_s = np.exp(2j * np.pi / (2 * self.d))
-     O = np.diag([omega_s**j for j in range(self.d)])
-     return Gate(self.d, O, "S")
+        w = Unity(self.d)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, "S")
 
     @property
     def T(self):
-       omega_t = np.exp(2j * np.pi / (4 * self.d))
-       O = np.diag([omega_t**j for j in range(self.d)])
-       return Gate(self.d, O, "T")
+        w = Unity(self.d * 2)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, "T")
 
     def P(self, theta: float):
-      omega = np.exp(1j * theta * np.pi / self.d)
-      O = np.diag([omega**j for j in range(self.d)])
-      return Gate(self.d, O, f"P({theta})")
+        w = Unity(self.d * 2)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, f"P({theta:.2f})")
 
     @property
     def H(self) -> Gate:

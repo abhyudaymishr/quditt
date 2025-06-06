@@ -146,14 +146,9 @@ class Gate(np.ndarray):
         self.name = getattr(obj, "name", "Gate")
         self.dits = getattr(obj, "dits", [])
 
-
     def __xor__(self, other: "Gate") -> "Gate":
         # return Gate(self.d, O, "Y")
-        return Gate(
-          self.d,
-          np.kron(self, other),
-          f"{self.name}.{other.name}"
-        )
+        return Gate(self.d, np.kron(self, other), f"{self.name}.{other.name}")
 
     def isUnitary(self):
         return np.allclose(self @ self.H, np.eye(self.shape[0]))
