@@ -1,4 +1,4 @@
-from typing import List, Tuple, Callable, Union
+from typing import List, Callable, Union
 from .index import Gate, Basis, Tensor
 from .algebra import Unity, dGellMann
 import numpy.linalg as LA
@@ -72,10 +72,9 @@ class Gategen:
         O = np.diag([w**i for i in range(self.d)])
         return Gate(self.d, O, "Z")
 
-    def CU(self, U: Gate, dits: List[int]) -> SuperGate:
-        if not isinstance(dits, list):
-          raise TypeError(f"dits must be a list, got {type(dits)}")
-
+    def CU(self, U: Gate, dits: Union[int, List[int]]) -> SuperGate:
+        if isinstance(dits, int):
+            dits = [dits]
         if len(dits) == 2:
             return C_Gate(self.d, self.Ket, U, dits)
 

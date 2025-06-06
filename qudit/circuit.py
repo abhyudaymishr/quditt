@@ -62,7 +62,7 @@ class Layer:
 
     def getMat(self, in_gates) -> np.ndarray:
         sublayer = [[]]
-        I = np.eye(self.d)
+        I = Gate(self.d, np.eye(self.d), "I")
         for gate in in_gates:
             span = gate.span
             if span != 1:
@@ -73,11 +73,15 @@ class Layer:
                 sublayer.append(gate)
             else:
                 sublayer[0].append(gate)
-        sublayer[0] = S.csr_matrix(Tensor(*sublayer[0]))
+        sublayer[0] = Tensor(*sublayer[0])
 
         # REMMEBER TO ADD ONE BECAUSE ENUM IS FROM [1:]
         for s, sub in enumerate(sublayer[1:]):
             dits = sub.dits
+            if len(dits) != sub.span:
+                dits = [dits[0]+i for i in range(len(dits))]
+            # endif
+
             [lq, mq] = [min(dits), max(dits)]
 
             isDone = False
@@ -90,11 +94,20 @@ class Layer:
                         continue
                     gates.append(sub)
                     isDone = True
+                # endif
+            # endfor
 
-            sublayer[s + 1] = S.csr_matrix(Tensor(*gates))
+            sublayer[s + 1] = Tensor(*gates)
+        # endfor
+
+        csr = True
+        if csr == True:
+          for i in range(len(sublayer)):
+            sublayer[i] = S.csr_matrix(sublayer[i])
 
         prod = sublayer[0]
         for sub in sublayer[1:]:
+            # print(prod.name, prod.shape, sub.shape)
             prod = prod @ sub
 
         return prod

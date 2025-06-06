@@ -146,6 +146,15 @@ class Gate(np.ndarray):
         self.name = getattr(obj, "name", "Gate")
         self.dits = getattr(obj, "dits", [])
 
+
+    def __xor__(self, other: "Gate") -> "Gate":
+        # return Gate(self.d, O, "Y")
+        return Gate(
+          self.d,
+          np.kron(self, other),
+          f"{self.name}.{other.name}"
+        )
+
     def isUnitary(self):
         return np.allclose(self @ self.H, np.eye(self.shape[0]))
 
@@ -172,13 +181,18 @@ def Tensor(*args: Union[Gate, State]) -> np.ndarray:
     if len(args) < 2:
         raise ValueError("At least two args needed")
 
+    names = []
     result = args[0]
     for arg in args[1:]:
         result = np.kron(result, arg)
+        if isinstance(arg, Gate):
+            names.append(arg.name)
+        else:
+            names.append("?")
 
     if result.ndim == 2:
         d = result.d
-        return Gate(d, result, name="AggreGate")
+        return Gate(d, result, name=".".join(names))
         # since X, H, CNOT are not longer valid names
     else:
         return result
