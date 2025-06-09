@@ -3,7 +3,7 @@ from .algebra import Unity, dGellMann
 from .index import Gate, Basis
 from .utils import Tensor
 import numpy.linalg as LA
-import numpy as np
+import numpy as np 
 
 ck = 21
 
