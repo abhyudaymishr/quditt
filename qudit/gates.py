@@ -1,6 +1,7 @@
-from typing import List, Tuple, Callable, Union
-from .index import Gate, Basis, Tensor
+from typing import List, Callable, Union
 from .algebra import Unity, dGellMann
+from .index import Gate, Basis
+from .utils import Tensor
 import numpy.linalg as LA
 import numpy as np
 
@@ -11,6 +12,7 @@ SuperGate = Union[
     Callable[[int], Gate],
     Gate,
 ]
+
 
 def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
     if len(set(dits)) != len(dits):
@@ -47,6 +49,7 @@ def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
     gate.span = 2
     return gate
 
+
 class Gategen:
     def __init__(self, d: int):
         self.d = d
@@ -72,10 +75,9 @@ class Gategen:
         O = np.diag([w**i for i in range(self.d)])
         return Gate(self.d, O, "Z")
 
-    def CU(self, U: Gate, dits: List[int]) -> SuperGate:
-        if not isinstance(dits, list):
-          raise TypeError(f"dits must be a list, got {type(dits)}")
-
+    def CU(self, U: Gate, dits: Union[int, List[int]]) -> SuperGate:
+        if isinstance(dits, int):
+            dits = [dits]
         if len(dits) == 2:
             return C_Gate(self.d, self.Ket, U, dits)
 
@@ -94,27 +96,21 @@ class Gategen:
         return self.CU(self.Z, *args)
 
     @property
-    def Z(self):
-     O = np.diag([w(self.d)**i for i in range(self.d)])
-     return Gate(self.d, O, "Z")
-
-
-    @property
     def S(self):
-     omega_s = np.exp(2j * np.pi / (2 * self.d))
-     O = np.diag([omega_s**j for j in range(self.d)])
-     return Gate(self.d, O, "S")
+        w = Unity(self.d)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, "S")
 
     @property
     def T(self):
-       omega_t = np.exp(2j * np.pi / (4 * self.d))
-       O = np.diag([omega_t**j for j in range(self.d)])
-       return Gate(self.d, O, "T")
+        w = Unity(self.d * 2)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, "T")
 
     def P(self, theta: float):
-      omega = np.exp(1j * theta * np.pi / self.d)
-      O = np.diag([omega**j for j in range(self.d)])
-      return Gate(self.d, O, f"P({theta})")
+        w = Unity(self.d * 2)
+        O = np.diag([w**j for j in range(self.d)])
+        return Gate(self.d, O, f"P({theta:.2f})")
 
     @property
     def H(self) -> Gate:

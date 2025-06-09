@@ -3,6 +3,7 @@ from itertools import permutations
 from ..index import State, Basis
 import numpy as np
 
+
 def GHZ(n: int, d: int) -> State:
     # sum_ i^d -> |0000> + |1111> + |2222> for n=4, d=3
     Ket = Basis(d)
@@ -36,6 +37,7 @@ def Dicke(n, k):
     vals = sum([Ket(v) for v in vals])
 
     return State(vals)
+
 
 # https://arxiv.org/pdf/1402.1487
 def Coherent(N: int, alpha=1.0) -> State:

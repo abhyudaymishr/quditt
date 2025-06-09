@@ -1,7 +1,9 @@
 from typing import List, Union, Callable
+from .utils import Tensor, isVar, ID
 from dataclasses import dataclass
-from .index import Gate, Tensor
+from .index import Gate, VarGate
 from scipy import sparse as S
+from sympy import Matrix
 import numpy as np
 
 BARRIER = "─|─"
@@ -24,10 +26,12 @@ class Frame:
 
 
 class Layer:
+    vqc: bool = False
     display: List[str]
     gates: List[Frame]
     data: np.ndarray
     span: int
+    id: str
     d: int
 
     def __init__(self, *args: Union[Gate, Callable]):
@@ -36,8 +40,10 @@ class Layer:
 
         gates = list(args)
         span = 0
+        self.vqc = isVar(*args)
+        self.id = ID()
         for g, gate in enumerate(args):
-            if isinstance(gate, Gate):
+            if isinstance(gate, (Gate, VarGate)):
                 span += gate.span
             elif isinstance(gate, Callable):
                 gate = gate(g)
@@ -57,12 +63,12 @@ class Layer:
         self.span = span
         self.d = args[0].d
         self.display = display
-        self.data = self.getMat(gates)
+        self.data = self.getMat(gates, not self.vqc)
         self.gates = gate_data
 
-    def getMat(self, in_gates) -> np.ndarray:
+    def getMat(self, in_gates, compress=False) -> np.ndarray:
         sublayer = [[]]
-        I = np.eye(self.d)
+        I = Gate(self.d, np.eye(self.d), "I")
         for gate in in_gates:
             span = gate.span
             if span != 1:
@@ -73,11 +79,15 @@ class Layer:
                 sublayer.append(gate)
             else:
                 sublayer[0].append(gate)
-        sublayer[0] = S.csr_matrix(Tensor(*sublayer[0]))
+        sublayer[0] = Tensor(*sublayer[0])
 
         # REMMEBER TO ADD ONE BECAUSE ENUM IS FROM [1:]
         for s, sub in enumerate(sublayer[1:]):
             dits = sub.dits
+            if len(dits) != sub.span:
+                dits = [dits[0] + i for i in range(len(dits))]
+            # endif
+
             [lq, mq] = [min(dits), max(dits)]
 
             isDone = False
@@ -90,8 +100,14 @@ class Layer:
                         continue
                     gates.append(sub)
                     isDone = True
+                # endif
+            # endfor
+            sublayer[s + 1] = Tensor(*gates)
+        # endfor
 
-            sublayer[s + 1] = S.csr_matrix(Tensor(*gates))
+        if compress == True:
+            for i in range(len(sublayer)):
+                sublayer[i] = S.csr_matrix(sublayer[i])
 
         prod = sublayer[0]
         for sub in sublayer[1:]:
@@ -135,17 +151,22 @@ class cfn:
 
 class Circuit:
     layers: List[Layer]
+    vqc: bool = False
     span: int
+    id: str
     d: int
 
     def __init__(self, *args: Layer):
         self.layers = list(args)
         self.d = -1
         self.span = -1
+        self.id = ID()
 
         if len(self.layers) > 0:
             span = self.layers[0].span
             for layer in self.layers:
+                if layer.vqc:
+                    self.vqc = True
                 if layer.span != span:
                     raise ValueError(f"Expected {span}, got {layer.span}")
 
@@ -153,9 +174,18 @@ class Circuit:
             self.d = self.layers[0].d
 
     def solve(self) -> np.ndarray:
-        prod = self.layers[0].data
-        for m in self.layers[1:]:
-            prod = m.data @ prod
+        if self.vqc:
+            for layer in self.layers:
+                if not layer.vqc:
+                    layer.data = layer.data.todense()
+
+            prod = Matrix(self.layers[0].data)
+            for layer in self.layers[1:]:
+                prod = Matrix(layer.data) * prod
+        else:
+            prod = self.layers[0].data
+            for m in self.layers[1:]:
+                prod = m.data @ prod
 
         return prod
 
@@ -205,19 +235,48 @@ class Circuit:
     def __getitem__(self, index):
         return self.layers[index]
 
+    def __setitem__(self, index: int, value: Layer):
+        if not isinstance(value, Layer):
+            raise TypeError(f"Expected Layer, got {type(value)}")
+        if index < 0 or index >= len(self.layers):
+            raise IndexError(f"Expected index in [0, {len(self.layers) - 1}], got {index}")
+        self.layers[index] = value
+        self._refresh()
+
     def __iter__(self):
         return iter(self.layers)
 
     def layer(self, *args: Union[Gate, Callable]):
         layer = Layer(*args)
-
-        if self.d == -1:
-            self.d = layer[0].d
-        if self.span == -1:
-            self.span = layer.span
-
         self.layers.append(layer)
+        self._refresh()
         return layer
+
+    def _refresh(self):
+      if self.d == -1:
+          for layer in self.layers:
+              if layer.d > 0:
+                  self.d = layer.d
+                  break
+
+      if self.span == -1:
+        span_sum = 0
+        for layer in self.layers:
+            if layer.span > 0:
+                span_sum += layer.span
+
+        if span_sum > 0:
+          self.span = span_sum
+
+      if self.vqc is False:
+        for layer in self.layers:
+            if layer.vqc:
+                self.vqc = True
+                break
+
+      if not self.id:
+          self.id = ID()
+
 
     def barrier(self):
         if len(self.layers) < 1:
