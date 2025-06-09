@@ -1,6 +1,7 @@
 from typing import List, Callable, Union
-from .index import Gate, Basis, Tensor
 from .algebra import Unity, dGellMann
+from .index import Gate, Basis
+from .utils import Tensor
 import numpy.linalg as LA
 import numpy as np
 

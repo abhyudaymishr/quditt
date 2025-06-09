@@ -1,6 +1,5 @@
 from scipy.linalg import fractional_matrix_power
 from typing import List, Union
-from .. import Dit, Psi, In
 import numpy as np
 
 

@@ -1,3 +1,5 @@
+from sympy.physics.quantum import TensorProduct
+from sympy import Matrix, zeros, eye, simplify
 from typing import List, Union
 import numpy.linalg as LA
 import numpy as np
@@ -114,13 +116,18 @@ class State(np.ndarray):
 
 
 class Gate(np.ndarray):
+    dits: List[int]
+    name: str = ""
+    vqc: bool
     span: int
     d: int
-    name: str = ""
-    dits: List[int]
 
     def __new__(cls, d: int, O: np.ndarray = None, name: str = None):
+        if isinstance(O, Matrix):
+            return VarGate(d, O, name)
+
         if O is None:
+            raise ValueError("Gate must be initialized with a matrix or None")
             obj = np.zeros((d, d), dtype=complex).view(cls)
             obj.span = 1
         else:
@@ -131,6 +138,7 @@ class Gate(np.ndarray):
         obj.name = name if name else f"Gate({d})"
         obj.d = d
         obj.dits = []
+        obj.vqc = False
 
         return obj
 
@@ -157,37 +165,34 @@ class Gate(np.ndarray):
         return np.allclose(self, self.H)
 
 
-# <A|b@c@d@e...@n|B>
-def braket(*args: np.ndarray) -> np.ndarray:
-    if len(args) < 2:
-        raise ValueError("At least two arguments are required for Bracket")
-
-    args = list(args)
-    args[-1] = args[-1].conj().T
-    result = args[0]
-    for arg in args[1:]:
-        result = np.dot(result, arg)
-
-    return result
-
-
-# A ^ B ^ C ^ D ^ ... ^ N
-def Tensor(*args: Union[Gate, State]) -> np.ndarray:
-    if len(args) < 2:
-        raise ValueError("At least two args needed")
-
-    names = []
-    result = args[0]
-    for arg in args[1:]:
-        result = np.kron(result, arg)
-        if isinstance(arg, Gate):
-            names.append(arg.name)
+class VarGate(Matrix):
+    def __new__(cls, d: int, O: Matrix = None, name: str = None):
+        if O is None:
+            raise ValueError("VarGate must be initialized with a matrix or None")
+            obj = Matrix.zeros(d, d)
+            span = 1
         else:
-            names.append("?")
+            obj = Matrix(O)
+            span = int(np.log(O.shape[0]) / np.log(d))
 
-    if result.ndim == 2:
-        d = result.d
-        return Gate(d, result, name=".".join(names))
-        # since X, H, CNOT are not longer valid names
-    else:
-        return result
+        mat = Matrix.__new__(cls, obj)
+        mat.d = d
+        mat.span = span
+        mat.name = name if name else f"Gate({d})"
+        mat.dits = []
+        mat.vqc = True
+        return mat
+
+    @property
+    def H(self):
+        return self.conjugate().T
+
+    def __xor__(self, other: "VarGate") -> "VarGate":
+        kron = TensorProduct(self, other)
+        return VarGate(self.d, kron, f"{self.name}.{other.name}")
+
+    def isUnitary(self):
+        return simplify(self * self.H) == eye(self.shape[0])
+
+    def isHermitian(self):
+        return simplify(self - self.H) == zeros(*self.shape)

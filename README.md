@@ -47,6 +47,9 @@ print(GHZ.density()) # |GHZ><GHZ|
 
 
 ### Todos
+- Remove `O is None` checks from `Gate` and `VarGate`
+
+
 **Done**:
 - Define statevector
 - Gates: Rot(GellMann), H, CU, CX, XYZ
