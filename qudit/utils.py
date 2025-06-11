@@ -1,7 +1,7 @@
 from sympy.physics.quantum import TensorProduct
+from sympy import SparseMatrix as Matrix
 from .index import Gate, State, VarGate
 from typing import Union
-from sympy import Matrix
 from uuid import uuid4
 import numpy as np
 
@@ -33,10 +33,12 @@ def braket(*args: np.ndarray) -> np.ndarray:
 
 # A ^ B ^ C ^ D ^ ... ^ N
 def Tensor(*args: Union[Gate, State]) -> np.ndarray:
-    if len(args) < 2:
-        raise ValueError("At least two args needed")
+    if len(args) == 0:
+        raise ValueError("At least one arg needed")
+    if len(args) == 1:
+        return args[0]
 
-    names = []
+    names = [args[0].name] if isinstance(args[0], (Gate, VarGate)) else ["?"]
     result = args[0]
     for arg in args[1:]:
         if isinstance(arg, Gate):

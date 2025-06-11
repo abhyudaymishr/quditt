@@ -1,9 +1,10 @@
 from typing import List, Union, Callable
+from sympy import SparseMatrix as Matrix
 from .utils import Tensor, isVar, ID
 from dataclasses import dataclass
 from .index import Gate, VarGate
 from scipy import sparse as S
-from sympy import Matrix
+from .gates import Gategen
 import numpy as np
 
 BARRIER = "─|─"
@@ -16,7 +17,7 @@ class Frame:
     span: int
     d: int
 
-    def create(gate: Gate):
+    def create(gate: Union[Gate, VarGate]):
         return Frame(
             name=gate.name,
             span=gate.span,
@@ -27,102 +28,127 @@ class Frame:
 
 class Layer:
     vqc: bool = False
-    display: List[str]
-    gates: List[Frame]
     data: np.ndarray
+    display: List[str]
+    counter: List[int]
+    gates: List[Frame]
     span: int
     id: str
     d: int
 
-    def __init__(self, *args: Union[Gate, Callable]):
-        if len(args) == 0:
-            raise ValueError("Layer must contain at least one gate.")
+    def __init__(self, size: int):
+        assert size > 0, f"Size must be a >0, got: {size}"
 
-        gates = list(args)
-        span = 0
-        self.vqc = isVar(*args)
         self.id = ID()
-        for g, gate in enumerate(args):
-            if isinstance(gate, (Gate, VarGate)):
-                span += gate.span
-            elif isinstance(gate, Callable):
-                gate = gate(g)
-                gates[g] = gate
-                span += gate.span
+        self.span = size
+        self.counter = list(range(size))
+        self.display = []
+        self.gates = []
+        self.d = -1
+
+    def add(self, gate: Union[Gate, VarGate], dits: List[int]):
+        gate.dits = dits
+        self.vqc = self.vqc or gate.vqc
+
+        for d in dits:
+            if d in self.counter:
+                self.counter.remove(d)
+
+        self.gates.append(gate)
+        self.display.append(Frame.create(gate))
+        return self
+
+    @property
+    def available(self):
+        return [d for d in range(self.span) if d in self.counter]
+
+    def open(self, *args: List[int]) -> bool:
+        return all(d in self.available for d in args)
+
+    def finalise(self):
+        if self.d == -1:
+            if len(self.gates) > 0:
+                self.d = self.gates[0].d
             else:
-                raise TypeError(f"Expected Gate, got {type(gate)}")
+                raise ValueError("Dimension not set, add a gate first")
 
-        display = []
-        gate_data = []
-        for g, gate in enumerate(gates):
-            display.append(f"{gate.name}({gate.dits if gate.dits else g})")
-            if len(gate.dits) == 0:
-                gate.dits = [g]
-            gate_data.append(Frame.create(gate))
-
-        self.span = span
-        self.d = args[0].d
-        self.display = display
-        self.data = self.getMat(gates, not self.vqc)
-        self.gates = gate_data
-
-    def getMat(self, in_gates, compress=False) -> np.ndarray:
-        sublayer = [[]]
-        I = Gate(self.d, np.eye(self.d), "I")
-        for gate in in_gates:
-            span = gate.span
-            if span != 1:
-                sublayer[0].append(I)
-
-                if span == 0:
-                    continue
-                sublayer.append(gate)
-            else:
-                sublayer[0].append(gate)
-        sublayer[0] = Tensor(*sublayer[0])
-
-        # REMMEBER TO ADD ONE BECAUSE ENUM IS FROM [1:]
-        for s, sub in enumerate(sublayer[1:]):
-            dits = sub.dits
-            if len(dits) != sub.span:
-                dits = [dits[0] + i for i in range(len(dits))]
-            # endif
-
-            [lq, mq] = [min(dits), max(dits)]
-
-            isDone = False
-            gates = []
-            for i in range(self.span):
-                if i < lq or i > mq:
-                    gates.append(I)
-                else:
-                    if isDone:
-                        continue
-                    gates.append(sub)
-                    isDone = True
-                # endif
-            # endfor
-            sublayer[s + 1] = Tensor(*gates)
-        # endfor
-
-        if compress == True:
-            for i in range(len(sublayer)):
-                sublayer[i] = S.csr_matrix(sublayer[i])
-
+        sublayer = self.getMat(self.gates)
         prod = sublayer[0]
         for sub in sublayer[1:]:
             prod = prod @ sub
 
+        self.data = prod
+        self.finalise = lambda: True
         return prod
 
+    # return list of equal sized matrices
+    def getMat(self, in_gates, compress=False) -> List[np.ndarray]:
+        sublayer = [[]]
+        l_gates, s_gates = [], []
+
+        for gate in in_gates:
+            if gate.span == 2:
+                l_gates.append(gate)
+            elif gate.span == 1:
+                s_gates.append(gate)
+            elif gate.span == 0:
+                continue
+            else:
+                raise ValueError(f"Span > 2 not supported: {gate.span}")
+        # endfor
+
+        G = Gategen(self.d)
+        I = G.I
+
+        sublayer[0] = [I] * self.span
+        for gate in s_gates:
+            dit = gate.dits[0]
+            sublayer[0][dit] = gate
+        sublayer[0] = Tensor(*sublayer[0])
+        # endfor
+
+        for gate in l_gates:
+            a, b = gate.dits
+            name = gate.name if gate.name else f"?({a}, {b})"
+
+            # RUN SWAPS FOR NON CONSECUTIVE DITS
+            if a < b and b != a + 1:
+                swap = G.long_swap(a + 1, b, width=self.span)
+            elif a > b and a != b + 1:
+                swap = G.long_swap(a - 1, b, width=self.span)
+            else:
+                swap = np.eye(self.d**self.span)
+            # endif
+
+            temp = []
+            for i in range(self.span):
+                if i < a:
+                    temp.append(I)
+                elif i == a:
+                    temp.append(gate)
+                elif i == a + 1:
+                    continue
+                else:
+                    temp.append(I)
+                # endif
+            # endfor
+
+            temp = Tensor(*temp)
+            temp = swap @ temp @ swap
+            temp.name = name
+            sublayer.append(temp)
+
+        return sublayer
+
     def __repr__(self):
-        return f"Layer({', '.join(self.display)})"
+        names = [gate.name for gate in self.display]
+        return f"Layer({', '.join(names)})"
 
     def __getitem__(self, index):
-        return self.gates[index]
+        return self.display[index]
 
     def __iter__(self):
-        return iter(self.gates)
+        return iter(self.display)
 
 
 class cfn:
@@ -156,36 +182,41 @@ class Circuit:
     id: str
     d: int
 
-    def __init__(self, *args: Layer):
-        self.layers = list(args)
+    def __init__(self, size: int = 0):
+        assert size >= 0, "Size must be a non-negative integer"
+
+        self.layers = [Layer(size=size)]
         self.d = -1
-        self.span = -1
+        self.span = size
         self.id = ID()
 
-        if len(self.layers) > 0:
-            span = self.layers[0].span
-            for layer in self.layers:
-                if layer.vqc:
-                    self.vqc = True
-                if layer.span != span:
-                    raise ValueError(f"Expected {span}, got {layer.span}")
+    def gate(self, gate: Union[Gate, VarGate], dits: List[int]):
+        layer = self.layers[-1]
+        if not layer.open(*dits):
+            layer.finalise()
+            if layer.d != -1:
+                self.d = layer.d
+            layer = Layer(size=self.span)
+            self.layers.append(layer)
 
-            self.span = span
-            self.d = self.layers[0].d
+        layer.add(gate, dits)
+        return self
 
     def solve(self) -> np.ndarray:
-        if self.vqc:
-            for layer in self.layers:
-                if not layer.vqc:
-                    layer.data = layer.data.todense()
+        self._refresh()
+        for layer in self.layers:
+            if not hasattr(layer, "data"):
+                layer.finalise()
 
-            prod = Matrix(self.layers[0].data)
-            for layer in self.layers[1:]:
-                prod = Matrix(layer.data) * prod
-        else:
-            prod = self.layers[0].data
-            for m in self.layers[1:]:
-                prod = m.data @ prod
+        for i in range(len(self.layers)):
+            if self.vqc:
+                self.layers[i].data = Matrix(self.layers[i].data)
+            else:
+                self.layers[i].data = S.csr_matrix(self.layers[i].data)
+
+        prod = self.layers[0].data
+        for m in self.layers[1:]:
+            prod = m.data @ prod
 
         return prod
 
@@ -239,7 +270,9 @@ class Circuit:
         if not isinstance(value, Layer):
             raise TypeError(f"Expected Layer, got {type(value)}")
         if index < 0 or index >= len(self.layers):
-            raise IndexError(f"Expected index in [0, {len(self.layers) - 1}], got {index}")
+            raise IndexError(
+                f"Expected index in [0, {len(self.layers) - 1}], got {index}"
+            )
         self.layers[index] = value
         self._refresh()
 
@@ -253,30 +286,29 @@ class Circuit:
         return layer
 
     def _refresh(self):
-      if self.d == -1:
-          for layer in self.layers:
-              if layer.d > 0:
-                  self.d = layer.d
-                  break
+        if self.d == -1:
+            for layer in self.layers:
+                if layer.d > 0:
+                    self.d = layer.d
+                    break
 
-      if self.span == -1:
-        span_sum = 0
-        for layer in self.layers:
-            if layer.span > 0:
-                span_sum += layer.span
+        if self.span == -1:
+            span_sum = 0
+            for layer in self.layers:
+                if layer.span > 0:
+                    span_sum += layer.span
 
-        if span_sum > 0:
-          self.span = span_sum
+            if span_sum > 0:
+                self.span = span_sum
 
-      if self.vqc is False:
-        for layer in self.layers:
-            if layer.vqc:
-                self.vqc = True
-                break
+        if self.vqc is False:
+            for layer in self.layers:
+                if layer.vqc:
+                    self.vqc = True
+                    break
 
-      if not self.id:
-          self.id = ID()
-
+        if not self.id:
+            self.id = ID()
 
     def barrier(self):
         if len(self.layers) < 1:

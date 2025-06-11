@@ -1,5 +1,5 @@
+from sympy import SparseMatrix as Matrix, zeros, eye, simplify
 from sympy.physics.quantum import TensorProduct
-from sympy import Matrix, zeros, eye, simplify
 from typing import List, Union
 import numpy.linalg as LA
 import numpy as np
@@ -122,7 +122,9 @@ class Gate(np.ndarray):
     span: int
     d: int
 
-    def __new__(cls, d: int, O: np.ndarray = None, name: str = None):
+    def __new__(
+        cls, d: int, O: np.ndarray = None, name: str = None, dits: List[int] = []
+    ):
         if isinstance(O, Matrix):
             return VarGate(d, O, name)
 
@@ -137,8 +139,13 @@ class Gate(np.ndarray):
 
         obj.name = name if name else f"Gate({d})"
         obj.d = d
-        obj.dits = []
+        obj.dits = dits
         obj.vqc = False
+
+        if len(dits) > 0:
+            span = max(dits) - min(dits) + 1
+            if span != obj.span:
+                raise ValueError(f"Got span: {span}, expected span: {obj.span}")
 
         return obj
 
@@ -166,21 +173,27 @@ class Gate(np.ndarray):
 
 
 class VarGate(Matrix):
-    def __new__(cls, d: int, O: Matrix = None, name: str = None):
+    def __new__(
+        cls, d: int, O: np.ndarray = None, name: str = None, dits: List[int] = []
+    ):
         if O is None:
-            raise ValueError("VarGate must be initialized with a matrix or None")
-            obj = Matrix.zeros(d, d)
-            span = 1
+            mat = Matrix(np.zeros((d, d), dtype=complex).view(cls))
+            mat.span = 1
         else:
-            obj = Matrix(O)
-            span = int(np.log(O.shape[0]) / np.log(d))
+            mat = Matrix(O)
+            mat.span = int(np.log(O.shape[0]) / np.log(d))
+        # endif
 
-        mat = Matrix.__new__(cls, obj)
+        mat.name = name if name else f"VarGate({d})"
         mat.d = d
-        mat.span = span
-        mat.name = name if name else f"Gate({d})"
         mat.dits = []
         mat.vqc = True
+
+        if len(dits) > 0:
+            span = max(dits) - min(dits) + 1
+            if span != mat.span:
+                raise ValueError(f"Got span: {span}, expected span: {mat.span}")
+
         return mat
 
     @property

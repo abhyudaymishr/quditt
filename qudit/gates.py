@@ -1,53 +1,11 @@
-from typing import List, Callable, Union
 from .algebra import Unity, dGellMann
+from typing import List, Union
 from .index import Gate, Basis
-from .utils import Tensor
 import numpy.linalg as LA
+from .utils import Tensor
 import numpy as np
 
 ck = 21
-
-SuperGate = Union[
-    Callable[[int, int], Gate],
-    Callable[[int], Gate],
-    Gate,
-]
-
-
-def C_Gate(d: int, Ket, U: Gate, dits: List[int]) -> Gate:
-    if len(set(dits)) != len(dits):
-        raise ValueError(f"Dits must be unique, got: {dits}")
-    for dit in dits:
-        assert isinstance(dit, int) and dit > 0, f"Dit: {dit} must be 0<int"
-
-    ctrl = lambda k: Ket(k).density()
-    targ = lambda k: LA.matrix_power(U, k)
-    width = abs(dits[1] - dits[0]) + 1
-    """
-      CU = Σ_k U^k ⊗ |k><k| (target, ctrl)
-      CU = Σ_k |k><k| ⊗ U^k (ctrl, target)
-
-      for everything else we insert I
-      Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
-    """
-
-    gate = []
-    for k in range(d):
-        Op = [ctrl(k)]
-        if width > 2:
-            Op += [np.eye(d * (width - 2))]
-        Op += [targ(k)]
-
-        if dits[0] > dits[1]:
-            Op.reverse()
-
-        gate.append(Tensor(*Op))
-
-    name = U.name if U.name else "U"
-    gate = Gate(d, sum(gate), "C" + name)
-    gate.dits = dits
-    gate.span = 2
-    return gate
 
 
 class Gategen:
@@ -75,25 +33,66 @@ class Gategen:
         O = np.diag([w**i for i in range(self.d)])
         return Gate(self.d, O, "Z")
 
-    def CU(self, U: Gate, dits: Union[int, List[int]]) -> SuperGate:
-        if isinstance(dits, int):
-            dits = [dits]
-        if len(dits) == 2:
-            return C_Gate(self.d, self.Ket, U, dits)
+    def CU(self, U: Gate, rev=False) -> Gate:
+        """
+        CU = Σ_k U^k ⊗ |k><k| (target, ctrl)
+        CU = Σ_k |k><k| ⊗ U^k (ctrl, target)
 
-        def gen(ctrl: int) -> Gate:
-            return C_Gate(self.d, self.Ket, U, [ctrl, dits[0]])
+        for everything else we insert I
+        Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
+        """
 
-        return gen
+        F = lambda k: [self.Ket(k).density(), LA.matrix_power(U, k)]
+        if rev:
+            F = lambda k: [LA.matrix_power(U, k), self.Ket(k).density()]
 
-    def CX(self, *args) -> SuperGate:
-        return self.CU(self.X, *args)
+        gate = [np.kron(*F(k)) for k in range(self.d)]
 
-    def CY(self, *args) -> SuperGate:
-        return self.CU(self.Y, *args)
+        name = U.name if U.name else "U"
+        gate = Gate(self.d, sum(gate), "C" + name)
+        gate.span = 2
 
-    def CZ(self, *args) -> SuperGate:
-        return self.CU(self.Z, *args)
+        return gate
+
+    @property
+    def CX(self) -> Gate:
+        return self.CU(self.X, False)
+
+    @property
+    def CY(self) -> Gate:
+        return self.CU(self.Y, False)
+
+    @property
+    def CZ(self) -> Gate:
+        return self.CU(self.Z, False)
+
+    @property
+    def swap(self) -> Gate:
+        cx, xc = self.CU(self.X, False), self.CU(self.X, True)
+
+        return Gate(self.d, cx @ xc @ cx, "sw")
+
+    def long_swap(self, a: int, b: int, width: int) -> Gate:
+        sw = self.swap
+        if a > b:
+            a, b = b, a
+        assert a <= width and b <= width, f"Index out of bounds ({width}): {a}, {b}"
+        assert a >= 0 and b >= 0, f"Negative index not allowed: {a}, {b}"
+        assert a != b, f"Cannot swap same index: {a}, {b}"
+
+        gates = []
+        for i in range(a, b):
+            if a <= i < b:
+                mat = [self.I] * (width - 1)
+                mat[i] = sw
+                mat = Tensor(*mat)
+                gates.append(mat)
+
+        prod = gates[0]
+        for g in gates[1:]:
+            prod = prod @ g
+
+        return Gate(self.d, prod, f"SWAP({a}, {b})[{width}]")
 
     @property
     def S(self):
@@ -132,7 +131,3 @@ class Gategen:
     @property
     def I(self) -> Gate:
         return Gate(self.d, np.eye(self.d), "I")
-
-    @property
-    def _(self) -> Gate:
-        return Gate(self.d, np.array([[0]]), "_")
