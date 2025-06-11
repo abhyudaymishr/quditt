@@ -71,35 +71,54 @@ def negativity(rho, dim_A, dim_B):
 class Entropy:
     def __new__(cls, *args):
         return Entropy.default(*args)
+    
+
+    @staticmethod
+    def density_matrix(rho : np.ndarray) -> np.ndarray:
+        """convert state vector to density matrix if needed"""
+        if rho.ndim == 1:
+            return np.outer(rho, rho.conj())
+        return rho
+
 
     @staticmethod
     def default(*args):
-        pass
+        return Entropy.neumann(*args)
 
     @staticmethod
     def entanglement():
-        pass
+        raise NotImplementedError("Which entanglement entropy?By Reyni or using von Neumann entropy.")
 
     @staticmethod
     def tsallis():
-        pass
+        raise NotImplementedError("Unified entropy is not implemented yet.")
 
     @staticmethod
-    def shannon():
-        pass
+    def shannon(probs: np.ndarray, base: float = 2.0) -> float:
+        probs = probs[probs > 1e-12]
+        return -np.sum(probs * np.log(probs) / np.log(base))
 
     @staticmethod
-    def renyi():
-        pass
+    def renyi(rho: np.ndarray, alpha: float = 2.0, base: float = 2.0) -> float:
+        if alpha == 1:
+            return Entropy.neumann(rho, base=base) # renyi entropy with alpha=1 is the same as von Neumann entropy
+        rho = Entropy.density_matrix(rho)
+        eigenvalues = np.linalg.eigvalsh(rho)
+        eigenvalues = eigenvalues[eigenvalues > 1e-12]
+        return np.log(np.sum(eigenvalues ** alpha)) / ((1 - alpha) * np.log(base))
 
     @staticmethod
-    def hartley():
-        pass
+    def hartley(probs: np.ndarray, base: float = 2.0) -> float:
+        support_size = np.count_nonzero(probs > 1e-12)
+        return np.log(support_size) / np.log(base)
 
     @staticmethod
-    def neumann():
-        pass
+    def neumann(rho: np.ndarray, base: float = 2.0) -> float:
+        rho = Entropy.density_matrix(rho)
+        eigenvalues = np.linalg.eigvalsh(rho)
+        eigenvalues = eigenvalues[eigenvalues > 1e-12]  
+        return -np.sum(eigenvalues * np.log(eigenvalues) / np.log(base))
 
     @staticmethod
     def unified():
-        pass
+        raise NotImplementedError("Unified entropy is not implemented yet.")
