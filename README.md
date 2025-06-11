@@ -1,4 +1,4 @@
-<img src="./assets/icon.svg" width="75" height="75" align="right">
+<img src="./docs/icon.svg" width="75" height="75" align="right">
 
 ### Qudit
 Simulations for Qudit systems
@@ -14,36 +14,60 @@ Two qubit example: bell state
 
 ```python
 from qudit import *
-D = DGate(2) # create gateset for 2-dits
-
+D = Gategen(2) # create gateset for 2-dits
+Ket = Basis(2)
 # p = |00><00|
-p00 = Psi(Dit(2, 0), Dit(2, 0)).density()
+p = Ket(0, 0).density()
 
-H_x_I = D.H ^ np.eye(2) # H x I
-rho = D.CX | H_x_I | p00 # rho - H x I - CX
+rho = D.CX @ D.H ^ D.I @ p # p - H x I - CX
 print(rho)
 
 # Tr(|11><11| p)
-prob = Tr(Psi(2, "11").density().dot(rho))
-print(prob) # 0.5
+prob = Ket("11").density().dot(rho)
+print(np.trace(prob)) # 0.5
 ```
 
 Three Qutrit example: 3-GHZ state = $\frac{1}{\sqrt{3}}(|000\rangle + |111\rangle + |222\rangle)$
 ```python
 from qudit import *
+Ket = Basis(3)
 
-P000 = Psi(Dit(3, 0), Dit(3, 0), Dit(3, 0))
-P111 = Psi(Dit(3, 1), Dit(3, 1), Dit(3, 1))
-P222 = Psi(Dit(3, 2), Dit(3, 2), Dit(3, 2))
+P000 = Ket(0) ^ Ket(0) ^ Ket(0)
+P111 = Ket(1, 1, 1)
+P222 = Ket("222")
 
-GHZ = Dit(P000, P111, P222)
+# |GHZ> = 1/sqrt(3) * (|000> + |111> + |222>)
+GHZ = State(P000 + P111 + P222)
 
-# alternative way to create GHZ state
-P000 = Psi(3, "000")
-P111 = Psi(3, "111")
-P222 = Psi(3, "222")
-
-GHZ = Dit(P000, P111, P222)
-
-print(GHZ.density())
+print(GHZ.density()) # |GHZ><GHZ|
 ```
+
+### Caveats
+- I don't plan to support Variational circuits anytime soon. For that probably use `cirq`, or hand-write your circuits.
+
+
+### Todos
+- Remove `O is None` checks from `Gate` and `VarGate`
+
+
+**Done**:
+- Define statevector
+- Gates: Rot(GellMann), H, CU, CX, XYZ, TSP
+- Circuit: Simulation, Drawing
+- Random: States, Gates
+- GramSchmidt
+- Fidelity: Fid, EntFid, Channel Fid
+- Negativity
+- Standard States: GHZ, W, Cohorent, Dicke
+
+<!-- **Almost Done**: -->
+
+**Not Done**:
+- Partial Trace
+- Gates: SWAP, Toffoli, QFT
+- Noise: Kraus, Choi
+- Stabiliser → States
+- States → Stabiliser
+- Measurement
+- Discord
+- Entropy
