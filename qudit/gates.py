@@ -72,9 +72,10 @@ class Gategen:
 
         return Gate(self.d, cx @ xc @ cx, "sw")
 
-    def long_swap(self, a :int, b :int, width: int) -> Gate:
+    def long_swap(self, a: int, b: int, width: int) -> Gate:
         sw = self.swap
-        if a > b: a, b = b, a
+        if a > b:
+            a, b = b, a
         assert a <= width and b <= width, f"Index out of bounds ({width}): {a}, {b}"
         assert a >= 0 and b >= 0, f"Negative index not allowed: {a}, {b}"
         assert a != b, f"Cannot swap same index: {a}, {b}"

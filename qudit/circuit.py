@@ -1,10 +1,10 @@
-from .index import Gate, VarGate
 from typing import List, Union, Callable
+from sympy import SparseMatrix as Matrix
 from .utils import Tensor, isVar, ID
 from dataclasses import dataclass
+from .index import Gate, VarGate
 from scipy import sparse as S
 from .gates import Gategen
-from sympy import Matrix
 import numpy as np
 
 BARRIER = "─|─"
@@ -25,11 +25,10 @@ class Frame:
             d=gate.d,
         )
 
+
 class Layer:
     vqc: bool = False
-
     data: np.ndarray
-
     display: List[str]
     counter: List[int]
     gates: List[Frame]

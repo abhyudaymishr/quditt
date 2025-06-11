@@ -20,7 +20,7 @@ def everything():
     C.gate(D.Z, dits=[3])
 
     P = sym.exp(1j * sym.Symbol("p"))
-    P = Gate(D.d, sym.Matrix([[1, 0], [0, P]]), "P")
+    P = Gate(D.d, sym.SparseMatrix([[1, 0], [0, P]]), "P")
     C.gate(P, dits=[4])
 
     C.gate(D.X, dits=[0])
@@ -49,6 +49,7 @@ def everything():
     print(C.draw(output="penny"))
 
     print(f"Solved to: {C.solve().shape} sparse matrix")
+
 
 if __name__ == "__main__":
     everything()

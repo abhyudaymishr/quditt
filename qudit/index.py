@@ -1,5 +1,5 @@
+from sympy import SparseMatrix as Matrix, zeros, eye, simplify
 from sympy.physics.quantum import TensorProduct
-from sympy import Matrix, zeros, eye, simplify
 from typing import List, Union
 import numpy.linalg as LA
 import numpy as np

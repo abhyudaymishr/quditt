@@ -1,7 +1,7 @@
 from sympy.physics.quantum import TensorProduct
+from sympy import SparseMatrix as Matrix
 from .index import Gate, State, VarGate
 from typing import Union
-from sympy import Matrix
 from uuid import uuid4
 import numpy as np
 
