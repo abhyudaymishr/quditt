@@ -1,6 +1,5 @@
 from typing import List, Union, Callable
 from sympy import SparseMatrix as Matrix
-from dataclasses import dataclass
 from .index import Gate, VarGate
 from scipy import sparse as S
 from .utils import Tensor, ID
@@ -10,26 +9,11 @@ import numpy as np
 BARRIER = "─|─"
 
 
-@dataclass
-class Frame:
-    dits: List[int]
-    name: str
-    span: int
-    d: int
-
-    def create(gate: Union[Gate, VarGate]):
-        return Frame(
-            name=gate.name,
-            span=gate.span,
-            dits=gate.dits,
-            d=gate.d,
-        )
-
 class Layer:
     vqc: bool = False
     data: np.ndarray
     counter: List[int]
-    gates: List[Frame]
+    gates: List[Gate]
     span: int
     id: str
     d: int
@@ -114,7 +98,7 @@ class Layer:
                 swap = G.long_swap(a, 0, width=self.span)
             elif b != 1 and a == 0:
                 swap = G.long_swap(b, 1, width=self.span)
-            else: # a == 0 and b == 1
+            else:  # a == 0 and b == 1
                 swap = np.eye(self.d**self.span)
 
             temp = [gate] + [I] * (self.span - 2)
@@ -211,6 +195,11 @@ class Circuit:
         strings = ["─"] * qudits
         for l, layer in enumerate(self.layers):
             qctr = 0
+            if layer[0].name == BARRIER:
+                strings = cfn.balance(strings)
+                strings = [s + BARRIER for s in strings]
+                continue
+
             for gate in layer:
                 if gate.span == 2:
                     strings = cfn.balance(strings)
@@ -248,12 +237,6 @@ class Circuit:
     def __iter__(self):
         return iter(self.layers)
 
-    def layer(self, *args: Union[Gate, Callable]):
-        layer = Layer(*args)
-        self.layers.append(layer)
-        self._refresh()
-        return layer
-
     def _refresh(self):
         if self.d == -1:
             for layer in self.layers:
@@ -286,5 +269,10 @@ class Circuit:
         assert self.span > 0, "Span Unknown, add a layer first"
 
         d = self.d
-        args = [Gate(d, np.eye(d), BARRIER)] * self.span
-        self.layer(*args)
+        layer = Layer(size=self.span).add(
+            Gate(d, np.eye(d), BARRIER), dits=list(range(self.span))
+        )
+        self.layers.append(layer)
+
+        self._refresh()
+        return self

@@ -16,6 +16,7 @@ import math as ma
 def ID() -> str:
     return str(uuid4()).split("-")[0]
 
+
 class Basis:
     d: int = None
     span: int = None
