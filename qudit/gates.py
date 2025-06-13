@@ -13,7 +13,9 @@ class Gategen:
         self.d = d
         self.Ket = Basis(d)
 
+
     def create(self, O: np.ndarray = None, name: str = "U"):
+
         return Gate(self.d, O, name)
 
     @property

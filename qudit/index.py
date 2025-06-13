@@ -122,7 +122,9 @@ class State(np.ndarray):
 
 class Gate(np.ndarray):
     dits: List[int]
+
     id: str = ""
+
     name: str = ""
     vqc: bool
     span: int

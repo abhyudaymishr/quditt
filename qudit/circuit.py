@@ -1,4 +1,6 @@
 from sympy import SparseMatrix as Matrix
+from .index import Gate, VarGate
+from scipy import sparse as S
 from scipy.sparse import csr_matrix
 from .index import Gate, VarGate
 from typing import List, Union
@@ -37,8 +39,10 @@ class Layer:
 
         self.gates.append(gate)
 
+
         if self.d == -1:
             self.d = gate.d
+
 
         return self
 
@@ -280,4 +284,5 @@ class Circuit:
             Gate(d, np.eye(d), BARRIER), dits=list(range(self.span))
         )
         self.layers.append(layer)
+
         return self
