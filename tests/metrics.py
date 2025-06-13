@@ -1,4 +1,11 @@
 import unittest
+import sys
+
+sys.path.append("..")
+
+from qudit.tools.metrics import Fidelity, negativity
+
+
 import numpy as np
 from qudit.tools.metrics import Fidelity, Entropy, negativity
 

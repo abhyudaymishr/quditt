@@ -13,7 +13,9 @@ class Gategen:
         self.d = d
         self.Ket = Basis(d)
 
-    def create(self, O: np.ndarray = None, name: str = None):
+
+    def create(self, O: np.ndarray = None, name: str = "U"):
+
         return Gate(self.d, O, name)
 
     @property
@@ -45,9 +47,9 @@ class Gategen:
         Eg: CU(1, 4) = Σ_k |k><k| ⊗ I ⊗ I ⊗ U^k
         """
 
-        F = lambda k: [self.Ket(k).density(), LA.matrix_power(U, k)]
+        F = lambda k: [LA.matrix_power(U, k), self.Ket(k).density()]
         if rev:
-            F = lambda k: [LA.matrix_power(U, k), self.Ket(k).density()]
+            F = lambda k: [self.Ket(k).density(), LA.matrix_power(U, k)]
 
         gate = [np.kron(*F(k)) for k in range(self.d)]
 

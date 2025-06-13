@@ -18,9 +18,9 @@ def isVar(*args) -> bool:
 
 
 # <A|b@c@d@e...@n|B>
-def braket(*args: np.ndarray) -> np.ndarray:
+def Braket(*args: np.ndarray) -> np.ndarray:
     if len(args) < 2:
-        raise ValueError("At least two arguments are required for Bracket")
+        raise ValueError("At least two arguments are required for Braket")
 
     args = list(args)
     args[-1] = args[-1].conj().T
@@ -39,8 +39,8 @@ def Tensor(*args: Union[Gate, State]) -> np.ndarray:
         return args[0]
 
     names = [args[0].name] if isinstance(args[0], (Gate, VarGate)) else ["?"]
-    result = args[0]
-    for arg in args[1:]:
+    result = args[-1]
+    for arg in args[:-1]:
         if isinstance(arg, Gate):
             result = np.kron(result, arg)
             names.append(arg.name)

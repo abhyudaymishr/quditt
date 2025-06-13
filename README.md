@@ -42,14 +42,6 @@ GHZ = State(P000 + P111 + P222)
 print(GHZ.density()) # |GHZ><GHZ|
 ```
 
-### Caveats
-- I don't plan to support Variational circuits anytime soon. For that probably use `cirq`, or hand-write your circuits.
-
-
-### Todos
-- Remove `O is None` checks from `Gate` and `VarGate`
-
-
 **Done**:
 - Define statevector
 - Gates: Rot(GellMann), H, CU, CX, XYZ, TSP
@@ -59,8 +51,6 @@ print(GHZ.density()) # |GHZ><GHZ|
 - Fidelity: Fid, EntFid, Channel Fid
 - Negativity
 - Standard States: GHZ, W, Cohorent, Dicke
-
-<!-- **Almost Done**: -->
 
 **Not Done**:
 - Partial Trace

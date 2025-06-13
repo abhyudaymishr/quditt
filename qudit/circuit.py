@@ -1,7 +1,9 @@
-from typing import List, Union, Callable
 from sympy import SparseMatrix as Matrix
 from .index import Gate, VarGate
 from scipy import sparse as S
+from scipy.sparse import csr_matrix
+from .index import Gate, VarGate
+from typing import List, Union
 from .utils import Tensor, ID
 from .gates import Gategen
 import numpy as np
@@ -36,6 +38,12 @@ class Layer:
                 self.counter.remove(d)
 
         self.gates.append(gate)
+
+
+        if self.d == -1:
+            self.d = gate.d
+
+
         return self
 
     @property
@@ -121,10 +129,12 @@ class Layer:
 
 
 class cfn:
+    @staticmethod
     def balance(strings: List[str]) -> List[str]:
         lmax = max(len(s) for s in strings)
         return [s.ljust(lmax, "─") for s in strings]
 
+    @staticmethod
     def cx(strings: List[str], dits: List[int], name: str = "U") -> List[str]:
         ctrl, targ = dits
         name = name[1:] if name.startswith("C") else name
@@ -181,7 +191,7 @@ class Circuit:
             if self.vqc:
                 self.layers[i].data = Matrix(self.layers[i].data)
             else:
-                self.layers[i].data = S.csr_matrix(self.layers[i].data)
+                self.layers[i].data = csr_matrix(self.layers[i].data)
 
         prod = self.layers[0].data
         for m in self.layers[1:]:
@@ -263,6 +273,7 @@ class Circuit:
             self.id = ID()
 
     def barrier(self):
+        self._refresh()
         if len(self.layers) < 1:
             raise ValueError("Add at least 1 layer for a barrier")
         assert self.d > 0, "Dimension Unknown, add a layer first"
@@ -274,5 +285,4 @@ class Circuit:
         )
         self.layers.append(layer)
 
-        self._refresh()
         return self
