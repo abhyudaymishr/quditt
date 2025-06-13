@@ -36,6 +36,10 @@ class Layer:
                 self.counter.remove(d)
 
         self.gates.append(gate)
+
+        if self.d == -1:
+            self.d = gate.d
+
         return self
 
     @property
@@ -121,10 +125,12 @@ class Layer:
 
 
 class cfn:
+    @staticmethod
     def balance(strings: List[str]) -> List[str]:
         lmax = max(len(s) for s in strings)
         return [s.ljust(lmax, "─") for s in strings]
 
+    @staticmethod
     def cx(strings: List[str], dits: List[int], name: str = "U") -> List[str]:
         ctrl, targ = dits
         name = name[1:] if name.startswith("C") else name
@@ -263,6 +269,7 @@ class Circuit:
             self.id = ID()
 
     def barrier(self):
+        self._refresh()
         if len(self.layers) < 1:
             raise ValueError("Add at least 1 layer for a barrier")
         assert self.d > 0, "Dimension Unknown, add a layer first"
@@ -273,6 +280,4 @@ class Circuit:
             Gate(d, np.eye(d), BARRIER), dits=list(range(self.span))
         )
         self.layers.append(layer)
-
-        self._refresh()
         return self

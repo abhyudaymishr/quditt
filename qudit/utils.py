@@ -39,8 +39,8 @@ def Tensor(*args: Union[Gate, State]) -> np.ndarray:
         return args[0]
 
     names = [args[0].name] if isinstance(args[0], (Gate, VarGate)) else ["?"]
-    result = args[0]
-    for arg in args[1:]:
+    result = args[-1]
+    for arg in args[:-1]:
         if isinstance(arg, Gate):
             result = np.kron(result, arg)
             names.append(arg.name)

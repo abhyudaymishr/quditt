@@ -5,6 +5,7 @@ from qudit import Basis, State, Unity
 from unittest import TestCase, main
 import numpy as np
 
+
 class TestQudit(TestCase):
     def test_basis(self):
         Ket = Basis(2)
@@ -39,10 +40,11 @@ class TestQudit(TestCase):
             + (9 * cos(pi / 16) + 1j * sin(pi / 5)) * Ket("2222")
         )
 
-        self.assertEqual(SV.shape, (4 ** 4,))
+        self.assertEqual(SV.shape, (4**4,))
         self.assertTrue(np.iscomplexobj(SV))
 
-        self.assertAlmostEqual(SV[0], 0.0208 +3.597e-02j, places=3)
+        self.assertAlmostEqual(SV[0], 0.0208 + 3.597e-02j, places=3)
+
 
 if __name__ == "__main__":
     main()

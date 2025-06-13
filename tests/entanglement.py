@@ -1,7 +1,6 @@
 import sys
 
 sys.path.append("..")
-
 from qudit.tools.entanglement import Loss, rank, Perp
 from unittest import TestCase, main
 from qudit import Basis, State
@@ -10,10 +9,12 @@ import numpy as np
 THETA, D, r = 1.5, 5, 2
 Bits, Trits = Basis(2), Basis(3)
 
+
 def Psi(i):
     A = Bits(0) ^ Trits(i)
     B = Bits(1) ^ Trits(i + 1)
     return A * np.cos(THETA / 2) + B * np.sin(THETA / 2)
+
 
 class Ranken(TestCase):
     def system(self, X):
