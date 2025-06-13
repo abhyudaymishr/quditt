@@ -6,7 +6,7 @@ from unittest import TestCase, main
 import numpy as np
 
 
-class TestQudit(TestCase):
+class States(TestCase):
     def test_basis(self):
         Ket = Basis(2)
 
@@ -18,7 +18,7 @@ class TestQudit(TestCase):
         self.assertTrue(np.sum(K00) == 1)
         self.assertTrue(np.abs(K00[0]) == 1)
 
-    def test_sv_construction(self):
+    def test_state_construction(self):
         pi = np.pi
         e, rt = np.exp, np.sqrt
         cos, sin = np.cos, np.sin

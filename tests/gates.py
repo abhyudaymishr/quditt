@@ -6,7 +6,7 @@ sys.path.append("..")
 from qudit import Gategen
 
 
-class TestGategen(TestCase):
+class Gates(TestCase):
     def setUp(self):
         self.D = Gategen(2)
 
