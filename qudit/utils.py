@@ -18,9 +18,9 @@ def isVar(*args) -> bool:
 
 
 # <A|b@c@d@e...@n|B>
-def braket(*args: np.ndarray) -> np.ndarray:
+def Braket(*args: np.ndarray) -> np.ndarray:
     if len(args) < 2:
-        raise ValueError("At least two arguments are required for Bracket")
+        raise ValueError("At least two arguments are required for Braket")
 
     args = list(args)
     args[-1] = args[-1].conj().T

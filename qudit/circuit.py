@@ -1,7 +1,7 @@
-from typing import List, Union, Callable
 from sympy import SparseMatrix as Matrix
+from scipy.sparse import csr_matrix
 from .index import Gate, VarGate
-from scipy import sparse as S
+from typing import List, Union
 from .utils import Tensor, ID
 from .gates import Gategen
 import numpy as np
@@ -181,7 +181,7 @@ class Circuit:
             if self.vqc:
                 self.layers[i].data = Matrix(self.layers[i].data)
             else:
-                self.layers[i].data = S.csr_matrix(self.layers[i].data)
+                self.layers[i].data = csr_matrix(self.layers[i].data)
 
         prod = self.layers[0].data
         for m in self.layers[1:]:

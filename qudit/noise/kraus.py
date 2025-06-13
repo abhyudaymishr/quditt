@@ -1,26 +1,52 @@
-class Channel:
-    Ek: list
+from scipy.special._comb import _comb_int as nCr
+from .utils import Error
+import numpy as np
 
-    def __init__(self, Ek):
-        self.Ek = Ek
 
-    def __call__(self, state):
-        if not isinstance(state, State):
-            raise TypeError("Input must be a State instance")
+class GAD:
+    @staticmethod
+    def A(order: int, d: int, Y: float):
+        obj = np.zeros((d, d), dtype=np.complex128)
+        for r in range(order, d):
+            obj[r - order][r] = np.sqrt(nCr(r, order) * (1 - Y) ** r - order * Y**order)
 
-        result = np.zeros_like(state, dtype=np.complex128)
-        for k in self.Ek:
-            result += k @ state @ k.conj().T
-        return State(result)
+        return Error(d, obj, f"A{order}", {"Y": Y, "order": order})
 
-    # @property
-    # isCP(self) -> bool:
-    #     pass
+    @staticmethod
+    def R(order: int, d: int, Y: float):
+        obj = np.zeros((d, d), dtype=np.complex128)
+        for r in range(d - order):
+            obj[r + order][r] = np.sqrt(
+                nCr(d - r - 1, order) * (1 - Y) ** (d - r - order - 1) * Y**order
+            )
 
-    # @property
-    # isTP(self) -> bool:
-    #     pass
+        return Error(d, obj, f"R{order}", {"Y": Y, "order": order})
 
-    # @property
-    # isCPTP(self) -> bool:
-    #     return self.isCP and self.isTP
+
+class Pauli:
+    @staticmethod
+    def X(d: int, Y: float):
+        obj = np.zeros((d, d), dtype=np.complex128)
+        for r in range(d):
+            obj[r][(r + 1) % d] = np.sqrt(Y)
+            obj[r][(r - 1) % d] = np.sqrt(1 - Y)
+
+        return Error(d, obj, "X", {"Y": Y})
+
+    @staticmethod
+    def Y(d: int, Y: float):
+        obj = np.zeros((d, d), dtype=np.complex128)
+        for r in range(d):
+            obj[r][(r + 1) % d] = np.sqrt(Y) * 1j
+            obj[r][(r - 1) % d] = np.sqrt(1 - Y) * 1j
+
+        return Error(d, obj, "Y", {"Y": Y})
+
+    @staticmethod
+    def Z(d: int, Y: float):
+        obj = np.zeros((d, d), dtype=np.complex128)
+        for r in range(d):
+            obj[r][r] = np.sqrt(Y)
+            obj[r][(r + 1) % d] = np.sqrt(1 - Y)
+
+        return Error(d, obj, "Z", {"Y": Y})

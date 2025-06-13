@@ -18,8 +18,8 @@ def ID() -> str:
 
 
 class Basis:
-    d: int = None
-    span: int = None
+    d: int = -1
+    span: int = -1
 
     def __init__(self, d: int):
         self.d = d
@@ -122,14 +122,14 @@ class State(np.ndarray):
 
 class Gate(np.ndarray):
     dits: List[int]
-    id: str = None
+    id: str = ""
     name: str = ""
     vqc: bool
     span: int
     d: int
 
     def __new__(
-        cls, d: int, O: np.ndarray = None, name: str = None, dits: List[int] = []
+        cls, d: int, O: np.ndarray = None, name: str = "U", dits: List[int] = []
     ):
         if isinstance(O, Matrix):
             return VarGate(d, O, name)
@@ -181,7 +181,7 @@ class Gate(np.ndarray):
 
 class VarGate(Matrix):
     def __new__(
-        cls, d: int, O: np.ndarray = None, name: str = None, dits: List[int] = []
+        cls, d: int, O: np.ndarray = None, name: str = "U", dits: List[int] = []
     ):
         if O is None:
             mat = Matrix(np.zeros((d, d), dtype=complex).view(cls))

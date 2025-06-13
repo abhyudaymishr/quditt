@@ -7,6 +7,7 @@ class Fidelity:
     def __new__(rho: np.ndarray, sigma: np.ndarray) -> float:
         return Fidelity.default(rho, sigma)
 
+    @staticmethod
     def default(rho: np.ndarray, sigma: np.ndarray) -> float:
         if rho.ndim == 1 and sigma.ndim == 1:
             return float(np.abs(np.vdot(rho, sigma)) ** 2)
@@ -21,6 +22,7 @@ class Fidelity:
         fidelity = np.trace(fractional_matrix_power(inner, 0.5))
         return float(np.real(fidelity))
 
+    @staticmethod
     def channel(
         kraus: List[Union[np.ndarray, List[float]]], rho: np.ndarray
     ) -> np.ndarray:
@@ -40,6 +42,7 @@ class Fidelity:
         return rho_out
 
     # TODO: is ndim enough? or do we need to check for square?
+    @staticmethod
     def entanglement(rho: np.ndarray, kraus_ops: List[np.ndarray]) -> float:
         d = rho.shape[0]
         assert rho.shape == (d, d), "rho must be a square matrix"
