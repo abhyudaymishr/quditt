@@ -19,5 +19,5 @@ class Distance:
         log_sigma = logm(sigma)
         delta_log = log_rho - log_sigma
 
-        result = np.trace(rho @ delta_log).real
+        result = np.trace(rho @ delta_log).real  #ensured
         return float(result / np.log(base))
