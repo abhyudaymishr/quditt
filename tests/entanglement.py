@@ -9,6 +9,7 @@ import numpy as np
 THETA, D, r = 1.5, 5, 2
 Bits, Trits = Basis(2), Basis(3)
 
+
 def Psi(i):
     A = Bits(0) ^ Trits(i)
     B = Bits(1) ^ Trits(i + 1)
