@@ -6,7 +6,6 @@ import numpy as np
 class Fidelity:
 
     @staticmethod
-
     def default(rho: np.ndarray, sigma: np.ndarray) -> float:
         if rho.ndim == 1 and sigma.ndim == 1:
             return float(np.abs(np.vdot(rho, sigma)) ** 2)
@@ -18,8 +17,8 @@ class Fidelity:
 
         sqrt_rho = fractional_matrix_power(rho, 0.5)
         inner = sqrt_rho @ sigma @ sqrt_rho
-        fidelity = (np.trace(fractional_matrix_power(inner, 0.5)))**2
-        return float(np.clip(np.real(fidelity)),0,1)
+        fidelity = (np.trace(fractional_matrix_power(inner, 0.5))) ** 2
+        return float(np.clip(np.real(fidelity)), 0, 1)
 
     @staticmethod
     def channel(

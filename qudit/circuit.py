@@ -39,10 +39,8 @@ class Layer:
 
         self.gates.append(gate)
 
-
         if self.d == -1:
             self.d = gate.d
-
 
         return self
 
