@@ -205,6 +205,7 @@ class Info:
         S_B = Entropy.default(rho_B)
         S_AB = Entropy.default(rho)
         return S_A + S_B - S_AB
+
     @staticmethod
     def coherent_information(rho_AB: np.ndarray, dA: int, dB: int) -> float:
         assert rho_AB.shape == (dA * dB, dA * dB), "rho must be of shape (dA*dB, dA*dB)"
@@ -212,5 +213,5 @@ class Info:
         rho_B = partial.trace(rho_AB, dA, dB, keep="B")
         S_B = Entropy.default(rho_B)
         S_AB = Entropy.default(rho_AB)
-    
+
         return S_B - S_AB

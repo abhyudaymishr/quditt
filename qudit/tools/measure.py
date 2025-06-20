@@ -31,7 +31,7 @@ class Distance:
 
         sigma = np.outer(sigma, sigma.conj()) if sigma.ndim == 1 else sigma
 
-        bures_distance = np.sqrt(2 - 2 * (Fidelity.default(rho, sigma)) ** 0.5)
+        bures_distance = np.sqrt(2 - 2 * (Distance.bhattacharyya(rho, sigma)) ** 0.5)
 
         return float(bures_distance)
 
