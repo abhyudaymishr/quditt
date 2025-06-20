@@ -2,7 +2,6 @@ import unittest
 import sys
 
 sys.path.append("..")
-
 import numpy as np
 from qudit.tools.metrics import Fidelity, Entropy, Information
 
@@ -30,9 +29,9 @@ class TestQuantumMetrics(unittest.TestCase):
         d = 2
         bell = np.array([1, 0, 0, 1], dtype=complex) / np.sqrt(2)
         rho = np.outer(bell, bell.conj())
-        N = Fidelity.negativity(rho, d, d)
+        N = negativity(rho, d, d)
         self.assertAlmostEqual(N, 0.5, places=6)
-        
+
     def test_entropy_neumann(self):
         rho = np.array([[0.7, 0], [0, 0.3]])
         S = Entropy.neumann(rho)
@@ -71,7 +70,7 @@ class TestQuantumMetrics(unittest.TestCase):
 
     def test_relative_entropy(self):
         rho = np.array([[0.8, 0], [0, 0.2]])
-        sigma = np.array([[0.5, 0], [0, 0.5]])
+        sigma = np.eye(2) / 2
         D = Entropy.relative_entropy(rho, sigma)
         expected = 0.8 * np.log2(0.8 / 0.5) + 0.2 * np.log2(0.2 / 0.5)
         self.assertAlmostEqual(D, expected, places=6)
@@ -82,12 +81,6 @@ class TestQuantumMetrics(unittest.TestCase):
      I = Information.mutual_information(rho, 2, 2)
      assert np.isclose(I, 2.0, atol=1e-5)
 
-
-    def test_mutual_information_bell_state():
-        psi = np.array([1, 0, 0, 1]) / np.sqrt(2)
-        rho = np.outer(psi, psi.conj())
-        I = Information.mutual_information(rho, 2, 2)
-        assert np.isclose(I, 2.0, atol=1e-5)
 
 
 if __name__ == "__main__":
