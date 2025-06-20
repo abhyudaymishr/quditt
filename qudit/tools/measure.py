@@ -29,7 +29,7 @@ class Distance:
         rho = np.outer(rho, rho.conj()) if rho.ndim == 1 else rho
 
         sigma = np.outer(sigma, sigma.conj()) if sigma.ndim == 1 else sigma
-        
+
         if rho.ndim == 1 and sigma.ndim == 1:
             return float(np.abs(np.vdot(rho, sigma)) ** 2)
 
@@ -41,9 +41,8 @@ class Distance:
         sqrt_rho = fractional_matrix_power(rho, 0.5)
         inner = sqrt_rho @ sigma @ sqrt_rho
         fidelity = (np.trace(fractional_matrix_power(inner, 0.5))) ** 2
-        
 
-        bures_distance = (np.sqrt(2 - 2 * fidelity) ** 0.5)
+        bures_distance = np.sqrt(2 - 2 * fidelity) ** 0.5
 
         return float(bures_distance)
 
