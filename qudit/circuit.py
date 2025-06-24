@@ -1,4 +1,5 @@
 from sympy import SparseMatrix as Matrix
+from scipy.sparse import csr_matrix
 from .index import Gate, VarGate
 from scipy import sparse as S
 from scipy.sparse import csr_matrix
@@ -39,10 +40,8 @@ class Layer:
 
         self.gates.append(gate)
 
-
         if self.d == -1:
             self.d = gate.d
-
 
         return self
 

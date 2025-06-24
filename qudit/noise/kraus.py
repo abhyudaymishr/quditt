@@ -1,4 +1,3 @@
-
 class Channel:
     Ek: list
 
@@ -25,6 +24,7 @@ class Channel:
     # @property
     # isCPTP(self) -> bool:
     #     return self.isCP and self.isTP
+
 
 from scipy.special._comb import _comb_int as nCr
 from .utils import Error
@@ -85,4 +85,3 @@ class Pauli:
         i = p * paulis["I"]
 
         return Error(2, i, "I", {"p": p})
-
