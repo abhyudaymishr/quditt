@@ -85,7 +85,7 @@ class partial:
                  ), "Input must be a square matrix of shape (dim_A*dim_B, dim_A*dim_B)"
 
          rho = rho.reshape(dim_A, dim_B, dim_A, dim_B)
-         rho_pt = np.transpose(rho, axes=(0, 2, 1, 3))
+         rho_pt = np.transpose(rho, axes=(0,3, 2, 1)) 
          return rho_pt.reshape(dim_A * dim_B, dim_A * dim_B)
 
 
