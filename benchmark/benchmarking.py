@@ -81,7 +81,7 @@ def benchmark_qutip():
 
 if __name__ == "__main__":
     print(f"Benchmarking over {REPEATS} runs...\n")
-    print(f"Your Circuit     : {benchmark_custom():.6f} s")
+    print(f"Qudit Circuit     : {benchmark_custom():.6f} s")
    
     print(f"Cirq             : {benchmark_cirq():.6f} s")
     print(f"QuTiP            : {benchmark_qutip():.6f} s")
