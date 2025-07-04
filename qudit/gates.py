@@ -1,20 +1,57 @@
+from scipy.sparse import csr_matrix, kron
 from .algebra import Unity, dGellMann
 from typing import List, Union
 from .index import Gate, Basis
+from functools import cache
 import numpy.linalg as LA
-from .utils import Tensor
 import numpy as np
 
 ck = 21
 
 
+class Swapper:
+    def __init__(self, d: int, width: int, swap: Gate, I: Gate):
+        self.d = d
+        self.width = width
+        self.swap = csr_matrix(swap)
+        self.I = csr_matrix(I)
+
+        swaps = []
+        for i in range(self.width - 1):
+            op = None
+            for j in range(self.width - 1):
+                gate = self.swap if j == i else self.I
+                op = gate if op is None else kron(op, gate, format="csr")
+            swaps.append(op)
+
+        self.S = swaps
+
+    @cache
+    def get(self, a: int, b: int) -> csr_matrix:
+        if a > b:
+            a, b = b, a
+
+        icheck = 0 <= a < self.width and 0 <= b < self.width and a != b
+        assert icheck, f"Invalid indices a: ({a},{b}), in: {self.width}"
+
+        prod = self.S[a]
+        for i in range(a + 1, b):
+            prod = self.S[i] @ prod
+
+        return prod
+
+
 class Gategen:
+    d: int
+    Ket: Basis
+    swapper: Union[Swapper, None]
+
     def __init__(self, d: int):
         self.d = d
         self.Ket = Basis(d)
+        self.swapper = None
 
     def create(self, O: np.ndarray = None, name: str = "U"):
-
         return Gate(self.d, O, name)
 
     @property
@@ -73,30 +110,25 @@ class Gategen:
     @property
     def swap(self) -> Gate:
         cx, xc = self.CU(self.X, False), self.CU(self.X, True)
-
         return Gate(self.d, cx @ xc @ cx, "sw")
 
     def long_swap(self, a: int, b: int, width: int) -> Gate:
         sw = self.swap
+        if a == b:
+            return Gate(self.d, np.eye(self.d**width), f"SWAP({a}, {b})[{width}]")
         if a > b:
             a, b = b, a
-        assert a <= width and b <= width, f"Index out of bounds ({width}): {a}, {b}"
-        assert a >= 0 and b >= 0, f"Negative index not allowed: {a}, {b}"
-        assert a != b, f"Cannot swap same index: {a}, {b}"
 
-        gates = []
-        for i in range(a, b):
-            if a <= i < b:
-                mat = [self.I] * (width - 1)
-                mat[i] = sw
-                mat = Tensor(*mat)
-                gates.append(mat)
+        assert 0 <= a <= width, f"Invalid index a: {a}, width: {width}"
+        assert 0 <= b <= width, f"Invalid index b: {b}, width: {width}"
 
-        prod = gates[0]
-        for g in gates[1:]:
-            prod = prod @ g
+        if self.swapper is None:
+            self.swapper = Swapper(self.d, width, sw, self.I)
 
-        return Gate(self.d, prod, f"SWAP({a}, {b})[{width}]")
+        mat = self.swapper.get(a, b)
+        mat.name = f"SWAP({a}, {b})[{width}]"
+        # mat = mat.todense()
+        return mat
 
     @property
     def S(self):

@@ -1,4 +1,4 @@
-from sympy.physics.quantum import TensorProduct
+from scipy.sparse import kron as skron, issparse, csr_matrix
 from sympy import SparseMatrix as Matrix
 from .index import Gate, State, VarGate
 from typing import Union
@@ -30,7 +30,6 @@ def Braket(*args: np.ndarray) -> np.ndarray:
 
     return result
 
-
 @staticmethod
 # A ^ B ^ C ^ D ^ ... ^ N
 def Tensor(*args: Union[Gate, State]) -> np.ndarray:
@@ -40,27 +39,19 @@ def Tensor(*args: Union[Gate, State]) -> np.ndarray:
         return args[0]
 
     names = [args[0].name] if isinstance(args[0], (Gate, VarGate)) else ["?"]
-    result = args[-1]
-    for arg in args[:-1]:
-        if isinstance(arg, Gate):
-            result = np.kron(result, arg)
-            names.append(arg.name)
-        elif isinstance(arg, VarGate):
-            result = TensorProduct(result, arg)
+    result = csr_matrix(args[0]) if not issparse(args[0]) else args[0]
+
+    for arg in args[1:]:
+        if isinstance(arg, (Gate, VarGate)):
+            m = csr_matrix(arg) if not issparse(arg) else arg
+            result = skron(m, result)
             names.append(arg.name)
         else:
-            result = np.kron(result, arg)
+            result = skron(csr_matrix(arg), result)
             names.append("?")
 
-    if result.ndim == 2:
-        d = result.d
-        if isVar(*args):
-            return VarGate(d, result, name=".".join(names))
-        else:
-            return Gate(d, result, name=".".join(names))
-            # since X, H, CNOT are not longer valid names
-    else:
-        return result
+    return result
+
 
 
 class partial:

@@ -1,15 +1,37 @@
 from sympy import SparseMatrix as Matrix
 from scipy.sparse import csr_matrix
 from .index import Gate, VarGate
-from scipy import sparse as S
-from scipy.sparse import csr_matrix
-from .index import Gate, VarGate
 from typing import List, Union
 from .utils import Tensor, ID
 from .gates import Gategen
+from time import time
 import numpy as np
 
 BARRIER = "─|─"
+
+
+def calculate_swaps(G, a, b, width, gate_tensor):
+    if abs(a - b) == 1:
+        if a < b:
+            return gate_tensor  # already in correct order
+        else:
+            # swap a and b to match order
+            swap = G.long_swap(a, b, width=width)
+            return swap @ gate_tensor @ swap
+
+    # Bring a -> 0, b -> 1 if a < b; else reverse
+    if a > b:
+        a, b = b, a
+        gate_tensor = (
+            G.long_swap(b, a, width=width)
+            @ gate_tensor
+            @ G.long_swap(b, a, width=width)
+        )
+
+    swap_a = G.long_swap(a, 0, width=width)
+    swap_b = G.long_swap(b, 1, width=width)
+    swap = swap_a @ swap_b
+    return swap @ gate_tensor @ swap
 
 
 class Layer:
@@ -20,6 +42,7 @@ class Layer:
     span: int
     id: str
     d: int
+    gategen: Union[Gategen, None]
 
     def __init__(self, size: int):
         assert size > 0, f"Size must be a >0, got: {size}"
@@ -29,6 +52,7 @@ class Layer:
         self.counter = list(range(size))
         self.gates = []
         self.d = -1
+        self.gategen = None
 
     def add(self, gate: Union[Gate, VarGate], dits: List[int]):
         gate.dits = dits
@@ -67,7 +91,7 @@ class Layer:
         self.data = prod
 
     # return list of equal sized matrices
-    def getMat(self, in_gates, compress=False) -> List[np.ndarray]:
+    def getMat(self, in_gates) -> List[np.ndarray]:
         sublayer = [[]]
         l_gates, s_gates = [], []
 
@@ -76,13 +100,12 @@ class Layer:
                 l_gates.append(gate)
             elif gate.span == 1:
                 s_gates.append(gate)
-            elif gate.span == 0:
-                continue
-            else:
-                raise ValueError(f"Span > 2 not supported: {gate.span}")
         # endfor
 
-        G = Gategen(self.d)
+        if self.gategen is None:
+            self.gategen = Gategen(self.d)
+
+        G = self.gategen
         I = G.I
 
         sublayer[0] = [I] * self.span
@@ -92,25 +115,15 @@ class Layer:
         sublayer[0] = Tensor(*sublayer[0])
         # endfor
 
+        # Main loop
         for gate in l_gates:
             a, b = gate.dits
             name = gate.name if gate.name else f"?({a}, {b})"
 
-            # RUN SWAPS FOR NON CONSECUTIVE DITS
-            if a != 0 and b != 1:
-                swap_a = G.long_swap(a, 0, width=self.span)
-                swap_b = G.long_swap(b, 1, width=self.span)
-                swap = swap_a @ swap_b
-            elif a != 0 and b == 1:
-                swap = G.long_swap(a, 0, width=self.span)
-            elif b != 1 and a == 0:
-                swap = G.long_swap(b, 1, width=self.span)
-            else:  # a == 0 and b == 1
-                swap = np.eye(self.d**self.span)
-
             temp = [gate] + [I] * (self.span - 2)
             temp = Tensor(*temp)
-            temp = swap @ temp @ swap
+            temp = calculate_swaps(G, a, b, self.span, temp)
+
             temp.name = name
             sublayer.append(temp)
 
@@ -169,6 +182,7 @@ class Circuit:
         self.id = ID()
 
     def gate(self, gate: Union[Gate, VarGate], dits: List[int]):
+        assert gate.span <= 2, f"Span {gate.span} not supported, upto 2"
         layer = self.layers[-1]
         if not layer.open(*dits):
             layer.finalise()

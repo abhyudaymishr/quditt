@@ -9,82 +9,116 @@ from qudit.algebra import gellmann,dGellMann,Unity
 from qiskit import *
 from qiskit.circuit.library import QFT                 # Qiskit
 from qiskit.quantum_info import Operator
-import cirq                                            # Cirq
+import cirq as CQ                                      # Cirq
 from qutip.qip.operations import qft     
 from qutip import *
-from qutip import basis, tensor
+from qutip import basis, tensor, qeye
 from qutip.qip.operations import hadamard_transform, cnot
+import sys
+sys.path.append("..")
+from time import perf_counter as bench
+from qiskit import QuantumCircuit
+import matplotlib.pyplot as plt
 
 
+ms = 1e3
+
+qutip_times = []
+qiskit_times = []
+cirq_times = []
+custom_times = []
 
 
-REPEATS = 100
-
-def Unity(d):
-    return np.exp(2j * np.pi / d)
-
-def benchmark_custom():
-    D = Gategen(2)
-    C = Circuit(2)
-    C.gate(D.H, dits=[0])
-    C.gate(D.CX, dits=[0, 1])
-
-    start = time.perf_counter()
-    for _ in range(REPEATS):
+def benchmark_custom(n, repeats):
+    G = Gategen(2)
+    C = Circuit(n)
+    C.gate(G.H, dits=[0])
+    for i in range(n - 1):
+        C.gate(G.CX, dits=[i, i + 1])
+    start = bench()
+    for _ in range(repeats):
         _ = C.solve()
-    end = time.perf_counter()
-
-    return (end - start) / REPEATS
+    return (bench() - start) / repeats
 
 
-def benchmark_qiskit():
-    from qiskit import QuantumCircuit, transpile, assemble
-    from qiskit.providers.aer import Aer
-
-    backend = Aer.get_backend("unitary_simulator")
-
-    start = time.perf_counter()
-    for _ in range(REPEATS):
-        qc = QuantumCircuit(2)
+def benchmark_qiskit(n, repeats):
+    start = bench()
+    for _ in range(repeats):
+        qc = QuantumCircuit(n)
         qc.h(0)
-        qc.cx(0, 1)
-        tqc = transpile(qc, backend)
-        qobj = assemble(tqc)
-        result = backend.run(qobj).result()
-        _ = result.get_unitary()
-    end = time.perf_counter()
-    return (end - start) / REPEATS
+        for i in range(n - 1):
+            qc.cx(i, i + 1)
+        _ = Operator.from_circuit(qc)
+    return (bench() - start) / repeats
 
 
-def benchmark_cirq():
-    q0, q1 = cirq.LineQubit.range(2)
-    circuit = cirq.Circuit(cirq.H(q0), cirq.CNOT(q0, q1))
-    simulator = cirq.Simulator()
+def benchmark_cirq(n, repeats):
+    q = CQ.LineQubit.range(n)
+    ops = [CQ.H(q[0])] + [CQ.CNOT(q[i], q[i + 1]) for i in range(n - 1)]
+    circuit = CQ.Circuit(ops)
+    sim = CQ.Simulator()
+    start = bench()
+    for _ in range(repeats):
+        _ = sim.simulate(circuit)
+    return (bench() - start) / repeats
 
-    start = time.perf_counter()
-    for _ in range(REPEATS):
-        _ = simulator.simulate(circuit)
-    end = time.perf_counter()
-    return (end - start) / REPEATS
-def benchmark_qutip():
+
+def benchmark_qutip(n, repeats):
     ket0 = basis(2, 0)
+    psi = tensor([ket0] * n)
     H = hadamard_transform(1)
-    I = qutip.qeye(2)
-    CX = cnot()
+    I = qeye(2)
+    start = bench()
+    for _ in range(repeats):
+        state = psi
+        ops = [I] * n
+        ops[0] = H
+        state = tensor(ops) * state
+        for i in range(n - 1):
+            CX = cnot(n, control=i, target=i + 1)
+            state = CX * state
+    return (bench() - start) / repeats
 
-    start = time.perf_counter()
-    for _ in range(REPEATS):
-        psi = tensor(ket0, ket0)
-        psi = tensor(H, I) * psi
-        bell = CX * psi
-    end = time.perf_counter()
 
-    return (end - start) / REPEATS
+n_range = range(2, 15)
+for n in n_range:
+    print(f"{n}/{len(n_range) + 2}")
+    repeats = 100
+    if n >= 9:
+        repeats = 10
+    if n >= 12:
+        repeats = 2
 
+    t_qiskit = ms * benchmark_qiskit(n, repeats)
+    print(f"\tQiskit: {t_qiskit:.3f} ms")
+    t_cirq = ms * benchmark_cirq(n, repeats)
+    print(f"\tCirq: {t_cirq:.3f} ms")
+    t_qutip = ms * benchmark_qutip(n, repeats)
+    print(f"\tQuTiP: {t_qutip:.3f} ms")
+    t_custom = ms * benchmark_custom(n, repeats)
+    print(f"\tQudit: {t_custom:.3f} ms")
 
-if __name__ == "__main__":
-    print(f"Benchmarking over {REPEATS} runs...\n")
-    print(f"Qudit Circuit     : {benchmark_custom():.6f} s")
-   
-    print(f"Cirq             : {benchmark_cirq():.6f} s")
-    print(f"QuTiP            : {benchmark_qutip():.6f} s")
+    tot = (t_custom + t_qiskit + t_cirq + t_qutip) / ms
+    print(f"\tTotal: {tot*repeats/60:.3f}")
+
+    custom_times.append(t_custom)
+    qiskit_times.append(t_qiskit)
+    cirq_times.append(t_cirq)
+    qutip_times.append(t_qutip)
+
+custom_times = np.log(custom_times)
+qiskit_times = np.log(qiskit_times)
+cirq_times = np.log(cirq_times)
+qutip_times = np.log(qutip_times)
+
+plt.plot(n_range, custom_times, label="Qudit", marker=".")
+plt.plot(n_range, qiskit_times, label="Qiskit", marker=".")
+plt.plot(n_range, cirq_times, label="Cirq", marker=".")
+plt.plot(n_range, qutip_times, label="QuTiP", marker=".")
+plt.xlabel("Number of Qubits (n)")
+plt.ylabel("Avg Time per Run (ms)")
+plt.title("GHZ Circuit Benchmark")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()

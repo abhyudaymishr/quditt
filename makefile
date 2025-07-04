@@ -12,3 +12,8 @@ deploy:
 test:
 	pip install .
 	python3 test.py
+
+prof:
+	# cd benchmark && python3 -m cProfile -o program.prof prof.py
+	cd benchmark && python3 prof.py
+	snakeviz program.prof
