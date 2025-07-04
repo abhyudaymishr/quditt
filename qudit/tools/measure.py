@@ -52,5 +52,3 @@ class Distance:
         sigma = np.outer(sigma, sigma.conj()) if sigma.ndim == 1 else sigma
 
         return 0.5 * np.trace(svdvals(rho - sigma)).real
-
-    

@@ -3,11 +3,13 @@ from qudit.utils import partial
 from typing import List, Union
 import numpy as np
 
+
 def isSquare(i: Union[np.ndarray, List[np.ndarray]]):
     if not isinstance(List):
         return i.ndim == 2 and i.shape[0] == i.shape[1]
     else:
         return all([isSquare(j) for j in i])
+
 
 class Fidelity:
 
@@ -40,12 +42,11 @@ class Fidelity:
 
     @staticmethod
     def entanglement(rho: np.ndarray, kraus_ops: List[np.ndarray]) -> float:
-        assert rho.ndim == 2 and rho.shape[0] == rho.shape[1], "rho must be a square matrix"
+        assert (
+            rho.ndim == 2 and rho.shape[0] == rho.shape[1]
+        ), "rho must be a square matrix"
 
-        F_e = sum([
-            np.abs(np.trace(rho @ K)) ** 2
-            for K in kraus_ops
-        ])
+        F_e = sum([np.abs(np.trace(rho @ K)) ** 2 for K in kraus_ops])
 
         return F_e
 
@@ -132,9 +133,7 @@ class Entropy:
             return ((s ** ((1 - q) / (1 - alpha))) - 1) / (1 - q)
 
     @staticmethod
-    def relative(
-        rho: np.ndarray, sigma: np.ndarray, base: float = 2.0
-    ) -> float:
+    def relative(rho: np.ndarray, sigma: np.ndarray, base: float = 2.0) -> float:
         rho = np.outer(rho, rho.conj()) if rho.ndim == 1 else rho
 
         sigma = np.outer(sigma, sigma.conj()) if sigma.ndim == 1 else sigma
@@ -167,9 +166,7 @@ class Entropy:
 class Info:
 
     @staticmethod
-    def conditional(
-        rho: np.ndarray, dA: int, dB: int, true_case: bool = True
-    ) -> float:
+    def conditional(rho: np.ndarray, dA: int, dB: int, true_case: bool = True) -> float:
         if true_case:
 
             projectors = [np.outer(b, b) for b in np.eye(d)]
@@ -202,7 +199,10 @@ class Info:
 
     @staticmethod
     def coherent(rho_AB: np.ndarray, dA: int, dB: int) -> float:
-        assert rho_AB.shape == (dA * dB, dA * dB), f"expected rho ({dA*dB}, {dA*dB}), got {rho_AB.shape}"
+        assert rho_AB.shape == (
+            dA * dB,
+            dA * dB,
+        ), f"expected rho ({dA*dB}, {dA*dB}), got {rho_AB.shape}"
 
         rho_B = partial.trace(rho_AB, dA, dB, keep="B")
         S_B = Entropy.default(rho_B)

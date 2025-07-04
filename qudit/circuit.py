@@ -9,6 +9,7 @@ import numpy as np
 
 BARRIER = "─|─"
 
+
 def calculate_swaps(G, a, b, width, gate_tensor):
     if abs(a - b) == 1:
         if a < b:
@@ -21,12 +22,17 @@ def calculate_swaps(G, a, b, width, gate_tensor):
     # Bring a -> 0, b -> 1 if a < b; else reverse
     if a > b:
         a, b = b, a
-        gate_tensor = G.long_swap(b, a, width=width) @ gate_tensor @ G.long_swap(b, a, width=width)
+        gate_tensor = (
+            G.long_swap(b, a, width=width)
+            @ gate_tensor
+            @ G.long_swap(b, a, width=width)
+        )
 
     swap_a = G.long_swap(a, 0, width=width)
     swap_b = G.long_swap(b, 1, width=width)
     swap = swap_a @ swap_b
     return swap @ gate_tensor @ swap
+
 
 class Layer:
     vqc: bool = False
@@ -76,7 +82,6 @@ class Layer:
                 self.d = self.gates[0].d
             else:
                 raise ValueError("Dimension not set, add a gate first")
-
 
         sublayer = self.getMat(self.gates)
         prod = sublayer[0]

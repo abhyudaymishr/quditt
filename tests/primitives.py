@@ -45,7 +45,8 @@ class States(TestCase):
 
         self.assertAlmostEqual(SV[0], 0.0208 + 3.597e-02j, places=3)
 
-        self.assertAlmostEqual(SV[0], 0.0208 +3.597e-02j, places=3)
+        self.assertAlmostEqual(SV[0], 0.0208 + 3.597e-02j, places=3)
+
 
 if __name__ == "__main__":
     main()

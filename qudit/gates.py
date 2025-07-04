@@ -8,6 +8,7 @@ import numpy as np
 
 ck = 21
 
+
 class Swapper:
     def __init__(self, d: int, width: int, swap: Gate, I: Gate):
         self.d = d
@@ -20,14 +21,15 @@ class Swapper:
             op = None
             for j in range(self.width - 1):
                 gate = self.swap if j == i else self.I
-                op = gate if op is None else kron(op, gate, format='csr')
+                op = gate if op is None else kron(op, gate, format="csr")
             swaps.append(op)
 
         self.S = swaps
 
     @cache
     def get(self, a: int, b: int) -> csr_matrix:
-        if a > b: a, b = b, a
+        if a > b:
+            a, b = b, a
 
         icheck = 0 <= a < self.width and 0 <= b < self.width and a != b
         assert icheck, f"Invalid indices a: ({a},{b}), in: {self.width}"
