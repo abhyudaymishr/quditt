@@ -30,6 +30,7 @@ def Braket(*args: np.ndarray) -> np.ndarray:
 
     return result
 
+
 @staticmethod
 # A ^ B ^ C ^ D ^ ... ^ N
 def Tensor(*args: Union[Gate, State]) -> np.ndarray:
@@ -51,6 +52,7 @@ def Tensor(*args: Union[Gate, State]) -> np.ndarray:
             names.append("?")
 
     return result
+
 
 
 
