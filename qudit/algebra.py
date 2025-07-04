@@ -1,10 +1,7 @@
 import numpy as np
 
 
-def Unity(d: int):
-    assert d > 0 and isinstance(d, int), "Dim must be int>0"
-    return np.exp(2j * np.pi / d)
-
+Unity = lambda d: np.exp(2j * np.pi / d)
 
 """
 Ordering followed same as:

@@ -1,8 +1,13 @@
 from scipy.linalg import logm, fractional_matrix_power
+from qudit.utils import partial
 from typing import List, Union
 import numpy as np
-from qudit.utils import partial
 
+def isSquare(i: Union[np.ndarray, List[np.ndarray]]):
+    if not isinstance(List):
+        return i.ndim == 2 and i.shape[0] == i.shape[1]
+    else:
+        return all([isSquare(j) for j in i])
 
 class Fidelity:
 
@@ -25,33 +30,22 @@ class Fidelity:
     def channel(
         kraus: List[Union[np.ndarray, List[float]]], rho: np.ndarray
     ) -> np.ndarray:
-        if rho.ndim == 1:
-            rho = np.outer(rho, rho.conj())
+        assert isSquare(kraus) and isSquare(rho), "Expected Square matrices"
 
-        d_1, d_2 = kraus[0].shape
-        if rho.shape != (d_2, d_2):
-            raise ValueError(
-                f"Incompatible shape: expected {(d_2, d_2)}, got {rho.shape}"
-            )
-
-        rho_out = np.zeros((d_1, d_1), dtype=complex)
+        rho_out = np.zeros_like(rho, dtype=np.complex128)
         for K in kraus:
             rho_out += K @ rho @ K.conj().T
 
         return rho_out
 
-    # TODO: is ndim enough? or do we need to check for square?
     @staticmethod
     def entanglement(rho: np.ndarray, kraus_ops: List[np.ndarray]) -> float:
-        d = rho.shape[0]
-        assert rho.shape == (d, d), "rho must be a square matrix"
-        for K in kraus_ops:
-            assert K.shape == (d, d), "Each Kraus operator must be of shape (d, d)"
+        assert rho.ndim == 2 and rho.shape[0] == rho.shape[1], "rho must be a square matrix"
 
-        F_e = 0.0
-        for K in kraus_ops:
-            term = np.trace(rho @ K)
-            F_e += np.abs(term) ** 2
+        F_e = sum([
+            np.abs(np.trace(rho @ K)) ** 2
+            for K in kraus_ops
+        ])
 
         return F_e
 
@@ -138,7 +132,7 @@ class Entropy:
             return ((s ** ((1 - q) / (1 - alpha))) - 1) / (1 - q)
 
     @staticmethod
-    def relative_entropy(
+    def relative(
         rho: np.ndarray, sigma: np.ndarray, base: float = 2.0
     ) -> float:
         rho = np.outer(rho, rho.conj()) if rho.ndim == 1 else rho
@@ -157,7 +151,7 @@ class Entropy:
         return float(result / np.log(base))
 
     @staticmethod
-    def conditional_entropy(rho: np.ndarray, dA: int, dB: int) -> float:
+    def conditional(rho: np.ndarray, dA: int, dB: int) -> float:
         assert rho.shape == (
             dA * dB,
             dA * dB,
@@ -173,7 +167,7 @@ class Entropy:
 class Info:
 
     @staticmethod
-    def conditional_entropy(
+    def conditional(
         rho: np.ndarray, dA: int, dB: int, true_case: bool = True
     ) -> float:
         if true_case:
@@ -197,7 +191,7 @@ class Info:
             return S_AB - S_A
 
     @staticmethod
-    def mutual_information(rho: np.ndarray, dA: int, dB: int) -> float:
+    def mutual(rho: np.ndarray, dA: int, dB: int) -> float:
         assert rho.shape == (dA * dB, dA * dB)
         rho_A = partial.trace(rho, dA, dB, keep="A")
         rho_B = partial.trace(rho, dA, dB, keep="B")
@@ -207,8 +201,8 @@ class Info:
         return S_A + S_B - S_AB
 
     @staticmethod
-    def coherent_information(rho_AB: np.ndarray, dA: int, dB: int) -> float:
-        assert rho_AB.shape == (dA * dB, dA * dB), "rho must be of shape (dA*dB, dA*dB)"
+    def coherent(rho_AB: np.ndarray, dA: int, dB: int) -> float:
+        assert rho_AB.shape == (dA * dB, dA * dB), f"expected rho ({dA*dB}, {dA*dB}), got {rho_AB.shape}"
 
         rho_B = partial.trace(rho_AB, dA, dB, keep="B")
         S_B = Entropy.default(rho_B)

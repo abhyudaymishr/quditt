@@ -1,3 +1,6 @@
 local/
 .DS_Store
 **/__pycache__/
+build/
+qudit.egg-info
+program.prof
