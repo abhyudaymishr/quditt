@@ -6,9 +6,12 @@ from qudit.gates import Gategen
 from qudit.index import Gate, VarGate,State,Basis
 from qudit.utils import ID,Braket,Tensor,partial
 from qudit.algebra import gellmann,dGellMann,Unity
-import cirq
-
-import qutip
+from qiskit import *
+from qiskit.circuit.library import QFT                 # Qiskit
+from qiskit.quantum_info import Operator
+import cirq                                            # Cirq
+from qutip.qip.operations import qft     
+from qutip import *
 from qutip import basis, tensor
 from qutip.qip.operations import hadamard_transform, cnot
 
