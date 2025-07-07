@@ -4,11 +4,12 @@ sys.path.append("..")
 
 
 from sympy import exp, SparseMatrix, Symbol
-from qudit import Gategen, Circuit
+from unittest import TestCase, main
+from qudit import Circuit
 import numpy as np
 
-D = Gategen(2)
-C = Circuit(4)
+C = Circuit(4, dim=2)
+D = C.gates
 
 
 def everything():
@@ -34,20 +35,16 @@ def everything():
     print(sum)
 
 
-from unittest import TestCase, main
-from qudit import Gategen, Circuit
-import numpy as np
-
-
 class Circuits(TestCase):
     def test_bell(self):
         HCX = np.array(
             [[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]]
         ) / np.sqrt(2)
 
-        D, C = Gategen(2), Circuit(2)
-        C.gate(D.H, dits=[0])
-        C.gate(D.CX, dits=[0, 1])
+        C = Circuit(2, dim=2)
+        G = C.gates
+        C.gate(G.H, dits=[0])
+        C.gate(G.CX, dits=[0, 1])
 
         U = C.solve().todense()
         self.assertTrue(np.allclose(U, HCX, atol=1e-4))
