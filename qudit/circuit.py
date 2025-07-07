@@ -1,10 +1,9 @@
 from sympy import SparseMatrix as Matrix
+from .utils import CTensor as Tensor, ID
 from scipy.sparse import csr_matrix
 from .index import Gate, VarGate
 from typing import List, Union
-from .utils import Tensor, ID
 from .gates import Gategen
-from time import time
 import numpy as np
 
 BARRIER = "─|─"
@@ -44,14 +43,15 @@ class Layer:
     d: int
     gategen: Union[Gategen, None]
 
-    def __init__(self, size: int):
+    def __init__(self, size: int, dim: int):
         assert size > 0, f"Size must be a >0, got: {size}"
+        assert dim >= 0, f"Dimension must be int>=0, got: {dim}"
 
         self.id = ID()
         self.span = size
         self.counter = list(range(size))
         self.gates = []
-        self.d = -1
+        self.d = dim
         self.gategen = None
 
     def add(self, gate: Union[Gate, VarGate], dits: List[int]):
@@ -63,10 +63,6 @@ class Layer:
                 self.counter.remove(d)
 
         self.gates.append(gate)
-
-        if self.d == -1:
-            self.d = gate.d
-
         return self
 
     @property
@@ -77,12 +73,6 @@ class Layer:
         return all(d in self.available for d in args)
 
     def finalise(self):
-        if self.d == -1:
-            if len(self.gates) > 0:
-                self.d = self.gates[0].d
-            else:
-                raise ValueError("Dimension not set, add a gate first")
-
         sublayer = self.getMat(self.gates)
         prod = sublayer[0]
         for sub in sublayer[1:]:
@@ -112,10 +102,9 @@ class Layer:
         for gate in s_gates:
             dit = gate.dits[0]
             sublayer[0][dit] = gate
-        sublayer[0] = Tensor(*sublayer[0])
         # endfor
+        sublayer[0] = Tensor(*sublayer[0])
 
-        # Main loop
         for gate in l_gates:
             a, b = gate.dits
             name = gate.name if gate.name else f"?({a}, {b})"
@@ -167,28 +156,27 @@ class cfn:
 
 
 class Circuit:
+    gates: Union[Gategen, None]
     layers: List[Layer]
     vqc: bool = False
     span: int
-    id: str
     d: int
 
-    def __init__(self, size: int = 0):
-        assert size >= 0, "Size must be a non-negative integer"
+    def __init__(self, size: int, dim: int):
+        assert size >= 0, "Size must be int>=0"
+        assert dim >= 0, "Dimension must be int>=0"
 
-        self.layers = [Layer(size=size)]
-        self.d = -1
+        self.layers = [Layer(size=size, dim=dim)]
+        self.d = dim
         self.span = size
-        self.id = ID()
+        self.gates = Gategen(dim)
 
     def gate(self, gate: Union[Gate, VarGate], dits: List[int]):
         assert gate.span <= 2, f"Span {gate.span} not supported, upto 2"
         layer = self.layers[-1]
         if not layer.open(*dits):
             layer.finalise()
-            if layer.d != -1:
-                self.d = layer.d
-            layer = Layer(size=self.span)
+            layer = Layer(size=self.span, dim=self.d)
             self.layers.append(layer)
 
         layer.add(gate, dits)
@@ -261,12 +249,6 @@ class Circuit:
         return iter(self.layers)
 
     def _refresh(self):
-        if self.d == -1:
-            for layer in self.layers:
-                if layer.d > 0:
-                    self.d = layer.d
-                    break
-
         if self.span == -1:
             span_sum = 0
             for layer in self.layers:
@@ -282,18 +264,14 @@ class Circuit:
                     self.vqc = True
                     break
 
-        if not self.id:
-            self.id = ID()
-
     def barrier(self):
         self._refresh()
         if len(self.layers) < 1:
             raise ValueError("Add at least 1 layer for a barrier")
-        assert self.d > 0, "Dimension Unknown, add a layer first"
         assert self.span > 0, "Span Unknown, add a layer first"
 
         d = self.d
-        layer = Layer(size=self.span).add(
+        layer = Layer(size=self.span, dim=self.d).add(
             Gate(d, np.eye(d), BARRIER), dits=list(range(self.span))
         )
         self.layers.append(layer)

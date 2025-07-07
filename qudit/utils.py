@@ -1,4 +1,5 @@
-from scipy.sparse import kron as skron, issparse, csr_matrix
+from scipy.sparse import kron as skron, csr_matrix
+from sympy.physics.quantum.tensorproduct import TensorProduct
 from sympy import SparseMatrix as Matrix
 from .index import Gate, State, VarGate
 from typing import Union
@@ -32,25 +33,35 @@ def Braket(*args: np.ndarray) -> np.ndarray:
 
 
 # # A ^ B ^ C ^ D ^ ... ^ N
-def Tensor(*args: Union[Gate, State]) -> Matrix:
+def Tensor(*args: Union[Gate, State]):
     if len(args) == 0:
         raise ValueError("At least one arg needed")
     if len(args) == 1:
         return args[0]
 
-    names = [args[0].name] if isinstance(args[0], (Gate, VarGate)) else ["?"]
-    result = csr_matrix(args[0]) if not issparse(args[0]) else args[0]
-
+    result = args[0]
     for arg in args[1:]:
-        if isinstance(arg, (Gate, VarGate)):
-            m = csr_matrix(arg) if not issparse(arg) else arg
-            result = skron(m, result)
-            names.append(arg.name)
-        else:
-            result = skron(csr_matrix(arg), result)
-            names.append("?")
+        result = np.kron(result, arg)
 
     return result
+
+# # A ^ B ^ C ^ D ^ ... ^ N
+def CTensor(*args: Union['Gate', 'VarGate', 'State']):
+    if not args:
+        raise ValueError("At least one arg needed")
+
+    args = list(args)[::-1]
+    if isVar(*args):
+        result = Matrix(args[0])
+        for arg in args[1:]:
+            result = TensorProduct(result, Matrix(arg))
+    else:
+        result = csr_matrix(args[0])
+        for arg in args[1:]:
+            result = skron(result, csr_matrix(arg))
+
+    return result
+
 
 
 class partial:

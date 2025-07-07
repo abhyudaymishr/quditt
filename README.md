@@ -49,6 +49,8 @@ print(GHZ.density()) # |GHZ><GHZ|
 - Random: States, Gates
 - GramSchmidt
 - Fidelity: Fid, EntFid, Channel Fid
+- Entropy
+- Information:
 - Negativity
 - Standard States: GHZ, W, Cohorent, Dicke
 
@@ -59,4 +61,3 @@ print(GHZ.density()) # |GHZ><GHZ|
 - Stabiliser → States
 - States → Stabiliser
 - Discord
-- Entropy

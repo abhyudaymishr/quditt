@@ -8,7 +8,6 @@ from time import perf_counter as bench
 from qutip import basis, tensor, qeye
 from qiskit import QuantumCircuit
 from qudit.circuit import Circuit
-from qudit.gates import Gategen
 import matplotlib.pyplot as plt
 import numpy as np
 import cirq as CQ
@@ -22,8 +21,8 @@ custom_times = []
 
 
 def benchmark_custom(n, repeats):
-    G = Gategen(2)
-    C = Circuit(n)
+    C = Circuit(n, dim=2)
+    G = C.gates
     C.gate(G.H, dits=[0])
     for i in range(n - 1):
         C.gate(G.CX, dits=[i, i + 1])

@@ -1,4 +1,3 @@
-from qiskit.quantum_info import Statevector
 from scipy.optimize import minimize
 import numpy as np
 
@@ -91,6 +90,3 @@ class Statiliser:
         self.basis = basis
 
         return basis
-
-    def draw(self, index=0):
-        return Statevector(self.basis[index]).draw("latex")

@@ -1,8 +1,8 @@
+from functools import cache, cached_property as cproperty
 from scipy.sparse import csr_matrix, kron
 from .algebra import Unity, dGellMann
 from typing import List, Union
 from .index import Gate, Basis
-from functools import cache
 import numpy.linalg as LA
 import numpy as np
 
@@ -54,21 +54,21 @@ class Gategen:
     def create(self, O: np.ndarray = None, name: str = "U"):
         return Gate(self.d, O, name)
 
-    @property
+    @cproperty
     def X(self) -> Gate:
         O = np.zeros((self.d, self.d))
         O[0, self.d - 1] = 1
         O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
         return Gate(self.d, O, "X")
 
-    @property
+    @cproperty
     def Y(self) -> Gate:
         O = np.zeros((self.d, self.d), dtype=complex)
         O[0, self.d - 1] = 1j
         O[1:, 0 : self.d - 1] = np.eye(self.d - 1)
         return Gate(self.d, O, "Y")
 
-    @property
+    @cproperty
     def Z(self) -> Gate:
         w = Unity(self.d)
         O = np.diag([w**i for i in range(self.d)])
@@ -95,23 +95,24 @@ class Gategen:
 
         return gate
 
-    @property
+    @cproperty
     def CX(self) -> Gate:
         return self.CU(self.X, False)
 
-    @property
+    @cproperty
     def CY(self) -> Gate:
         return self.CU(self.Y, False)
 
-    @property
+    @cproperty
     def CZ(self) -> Gate:
         return self.CU(self.Z, False)
 
-    @property
+    @cproperty
     def swap(self) -> Gate:
         cx, xc = self.CU(self.X, False), self.CU(self.X, True)
         return Gate(self.d, cx @ xc @ cx, "sw")
 
+    @cache
     def long_swap(self, a: int, b: int, width: int) -> Gate:
         sw = self.swap
         if a == b:
@@ -130,24 +131,25 @@ class Gategen:
         # mat = mat.todense()
         return mat
 
-    @property
+    @cproperty
     def S(self):
         w = Unity(self.d)
         O = np.diag([w**j for j in range(self.d)])
         return Gate(self.d, O, "S")
 
-    @property
+    @cproperty
     def T(self):
         w = Unity(self.d * 2)
         O = np.diag([w**j for j in range(self.d)])
         return Gate(self.d, O, "T")
 
+    @cache
     def P(self, theta: float):
         w = Unity(self.d * 2)
         O = np.diag([w**j for j in range(self.d)])
         return Gate(self.d, O, f"P({theta:.2f})")
 
-    @property
+    @cproperty
     def H(self) -> Gate:
         O = np.zeros((self.d, self.d), dtype=complex)
         w = Unity(self.d)
@@ -157,6 +159,7 @@ class Gategen:
 
         return Gate(self.d, O, "H")
 
+    @cache
     def Rot(self, thetas: List[complex]) -> Gate:
         R = np.eye(self.d)
         for i, theta in enumerate(thetas):
@@ -164,6 +167,6 @@ class Gategen:
 
         return Gate(self.d, R, "Rot")
 
-    @property
+    @cproperty
     def I(self) -> Gate:
         return Gate(self.d, np.eye(self.d), "I")
