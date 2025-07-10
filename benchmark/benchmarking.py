@@ -1,25 +1,16 @@
-import time
-import numpy as np
-from scipy.sparse import csr_matrix
-from qudit.circuit import Circuit,cfn,Layer
-from qudit.gates import Gategen
-from qudit.index import Gate, VarGate,State,Basis
-from qudit.utils import ID,Braket,Tensor,partial
-from qudit.algebra import gellmann,dGellMann,Unity
-from qiskit import *
-from qiskit.circuit.library import QFT                 # Qiskit
-from qiskit.quantum_info import Operator
-import cirq as CQ                                      # Cirq
-from qutip.qip.operations import qft     
-from qutip import *
-from qutip import basis, tensor, qeye
-from qutip.qip.operations import hadamard_transform, cnot
 import sys
-sys.path.append("..")
-from time import perf_counter as bench
-from qiskit import QuantumCircuit
-import matplotlib.pyplot as plt
 
+sys.path.append("..")
+
+from qutip_qip.operations import hadamard_transform, cnot
+from qiskit.quantum_info import Operator
+from time import perf_counter as bench
+from qutip import basis, tensor, qeye
+from qiskit import QuantumCircuit
+from qudit.circuit import Circuit
+import matplotlib.pyplot as plt
+import numpy as np
+import cirq as CQ
 
 ms = 1e3
 
@@ -30,8 +21,8 @@ custom_times = []
 
 
 def benchmark_custom(n, repeats):
-    G = Gategen(2)
-    C = Circuit(n)
+    C = Circuit(n, dim=2)
+    G = C.gates
     C.gate(G.H, dits=[0])
     for i in range(n - 1):
         C.gate(G.CX, dits=[i, i + 1])
